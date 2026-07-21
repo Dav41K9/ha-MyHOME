@@ -24,6 +24,8 @@ PLATFORM_MAP = {
     "cover": "cover",
     "climate": "climate",
     "sensor": "sensor",
+    "binary_sensor": "binary_sensor",
+    "button": "button",
 }
 
 
