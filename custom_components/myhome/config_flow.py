@@ -84,6 +84,8 @@ DEVICE_TYPE_SELECTOR = SelectSelector(
             {"value": SUBENTRY_COVER, "label": "Tapparella / Tenda"},
             {"value": SUBENTRY_CLIMATE, "label": "Termostato / Zona"},
             {"value": SUBENTRY_SENSOR, "label": "Sensore (potenza)"},
+            {"value": SUBENTRY_BINARY_SENSOR, "label": "Sensore binario (movimento/porta)"},
+            {"value": SUBENTRY_BUTTON, "label": "Button (frame personalizzato)"},
         ],
         mode=SelectSelectorMode.DROPDOWN,
     )
@@ -114,6 +116,18 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Optional(CONF_MODEL, default=""): TextSelector(
             TextSelectorConfig(type="text")
         ),
+        vol.Optional(CONF_FRAME, default=""): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_WHO, default="1"): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_ON_VALUE, default="1"): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_OFF_VALUE, default="0"): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
     }
 )
 
@@ -139,6 +153,18 @@ DEVICE_RECONFIGURE_SCHEMA = vol.Schema(
             TextSelectorConfig(type="text")
         ),
         vol.Optional(CONF_MODEL, default=""): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_FRAME, default=""): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_WHO, default="1"): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_ON_VALUE, default="1"): TextSelector(
+            TextSelectorConfig(type="text")
+        ),
+        vol.Optional(CONF_OFF_VALUE, default="0"): TextSelector(
             TextSelectorConfig(type="text")
         ),
     }
@@ -248,6 +274,8 @@ class MyHOMEConfigFlow(ConfigFlow, domain=DOMAIN):
             SUBENTRY_COVER: MyHOMEDeviceSubentryFlow,
             SUBENTRY_CLIMATE: MyHOMEDeviceSubentryFlow,
             SUBENTRY_SENSOR: MyHOMEDeviceSubentryFlow,
+            SUBENTRY_BINARY_SENSOR: MyHOMEDeviceSubentryFlow,
+            SUBENTRY_BUTTON: MyHOMEDeviceSubentryFlow,
         }
 
 
