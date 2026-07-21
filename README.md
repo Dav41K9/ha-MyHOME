@@ -1,29 +1,56 @@
-# What's up?
+# BTicino MyHOME per Home Assistant
 
-I'm afraid it's time to be blunt, I cannot maintain this integration any longer, not in any meaningful way at least.
+Integrazione custom per Home Assistant che consente di controllare gli impianti
+domotici **BTicino MyHOME** (protocollo OpenWebNet) tramite gateway
+MyHOME Server / MH200N / F452V / F453V e compatibili.
 
-I'm open for someone to take over this and OWNd's repositories.  
-I'd strongly prefer someone who has extensive experience with a proper development workflow, since I feel that's something that has been missing from this project.  
-I'd love for this to become a core integration one day but I have no idea how much work would be needed to achieve that.
+> **Versione 2.0** — Riscrittura completa con configurazione interamente via UI.
+> Non richiede più alcun file YAML.
 
-Anyway, If you think you can take over code ownership for this, let me know.
+---
 
-# MyHOME
-MyHOME integration for Home-Assistant
+## Funzionalità
 
-## Installation
-The integration is able to install the gateway via the Home-Assistant graphical user interface, configuring the different devices needs to be done in YAML files however.
+- 🔌 **Connessione locale** al gateway via TCP (porta 20000 di default)
+- 📡 **Event listener persistente** con riconnessione automatica
+- 🏠 **Configurazione via UI** — gateway e dispositivi si gestiscono da
+  *Impostazioni → Dispositivi e servizi*
+- 📦 **Config Subentries** — ogni dispositivo è un sotto-elemento del gateway,
+  modificabile singolarmente
+- 🔄 **Migrazione automatica** dal vecchio file `myhome.yaml` (v1.x → v2.0)
+- 🩺 **Diagnostics** — esporta lo stato dell'integrazione per il debug
 
-Some common gateways should be auto-discovered, but it is still possible to force the inclusion of a gateway not discovered. One limitation however is that the gateway needs to be in the same network as your Home-Assistant instance.
+### Piattaforme supportate
 
-It is possible that upon first install (and updates), the OWNd listener process crashes and you do not get any status feedback on your devices. If such is the case, a restart of Home Assistant should solve the issue.
+| Piattaforma | Descrizione | Esempi |
+|---|---|---|
+| `light` | Luci ON/OFF e dimmerabili | BMSW1005, F418U2 |
+| `switch` | Prese e uscite relè | BMSW1005 |
+| `cover` | Tapparelle e tende (anche con posizione) | F411/4 |
+| `climate` | Zone termoregolate | F430R8 |
+| `sensor` | Sensori di potenza | F520 |
+| `binary_sensor` | Sensori binari (movimento, porta, finestra…) | — |
+| `button` | Invio frame OpenWebNet personalizzati | — |
 
-## BEWARE
+---
 
-If you've been using this integration in version 0.8 and prior, configuration structure has changed and you need to create and populate the appropriate config file. See below for instructions.
+## Requisiti
 
+- Home Assistant **2025.4** o superiore (per il supporto ai Config Subentries)
+- Python **3.13+** (incluso in HA 2026.x)
+- Un gateway BTicino MyHOME raggiungibile sulla rete locale
+- La password OpenWebNet del gateway (default: `12345`)
 
-## Configuration and use
+### Dipendenze
 
-Please find the [configuration](https://github.com/anotherjulien/MyHOME/wiki/Configuration) on the project's wiki!  
-[Advanced uses](https://github.com/anotherjulien/MyHOME/wiki/Advanced-uses) are also listed in the wiki.
+- [OWNd](https://pypi.org/project/OWNd/) `0.7.49` — libreria di comunicazione
+  OpenWebNet (installata automaticamente)
+
+---
+
+## Installazione
+
+### Via HACS (consigliato)
+
+1. Apri **HACS → Integrazioni → ⋮ → Repository personalizzati**
+2. Aggiungi l'URL del fork:
