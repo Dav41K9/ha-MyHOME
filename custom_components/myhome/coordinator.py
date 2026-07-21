@@ -6,7 +6,8 @@ import asyncio
 import logging
 from typing import Any
 
-from OWNd import OWNdGateway, OWNdMessage
+from OWNd.connection import OWNGateway, OWNEventSession, OWNCommandSession
+from OWNd.message import OWNMessage
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -38,7 +39,8 @@ class MyHOMEGatewayCoordinator:
         self.port: int = int(entry.data.get(CONF_PORT, DEFAULT_PORT))
         self.password: str = str(entry.data.get(CONF_PASSWORD, DEFAULT_PASSWORD))
 
-        self._gateway: OWNdGateway | None = None
+        self._gateway: OWNGateway | None = None
+        self._event_session: OWNEventSession | None = None
         self._listener_task: asyncio.Task | None = None
         self._running = False
         self._connected = False
@@ -46,38 +48,50 @@ class MyHOMEGatewayCoordinator:
         # Pending request/response for polling
         self._pending: dict[str, asyncio.Future] = {}
 
+    def _build_gateway(self) -> OWNGateway:
+        """Build an OWNGateway instance from config entry data."""
+        return OWNGateway({
+            "address": self.host,
+            "port": self.port,
+            "password": self.password,
+            "serialNumber": self.mac,
+            "modelName": "MyHOME Server",
+            "manufacturer": "BTicino S.p.A.",
+        })
+
     @property
     def connected(self) -> bool:
         """Return True if connected to the gateway."""
         return self._connected
 
     async def async_connect(self) -> bool:
-        """Establish connection to the gateway."""
+        """Test connectivity with a simple TCP check (avoids OWNd logger bug)."""
         try:
-            self._gateway = OWNdGateway(
-                address=self.host,
-                port=self.port,
-                password=self.password,
-                mac=self.mac,
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port),
+                timeout=10,
             )
-            self._connected = await self._gateway.async_connect()
-            if self._connected:
-                _LOGGER.info(
-                    "Connected to MyHOME gateway %s at %s:%s",
-                    self.mac, self.host, self.port,
-                )
-            else:
-                _LOGGER.warning(
-                    "Could not connect to gateway %s at %s:%s",
-                    self.mac, self.host, self.port,
-                )
-            return self._connected
-        except Exception:
-            _LOGGER.exception(
-                "Failed to connect to gateway %s at %s:%s",
+            writer.close()
+            await writer.wait_closed()
+            self._connected = True
+            _LOGGER.info(
+                "Gateway %s reachable at %s:%s",
                 self.mac, self.host, self.port,
             )
+            return True
+        except (asyncio.TimeoutError, OSError):
             self._connected = False
+            _LOGGER.warning(
+                "Cannot reach gateway %s at %s:%s",
+                self.mac, self.host, self.port,
+            )
+            return False
+        except Exception:
+            self._connected = False
+            _LOGGER.exception(
+                "Unexpected error testing gateway %s at %s:%s",
+                self.mac, self.host, self.port,
+            )
             return False
 
     async def async_start_listener(self) -> None:
@@ -92,17 +106,28 @@ class MyHOMEGatewayCoordinator:
     async def _listen_loop(self) -> None:
         """Main listener loop with auto-reconnect."""
         while self._running:
-            if not self._connected:
-                success = await self.async_connect()
-                if not success:
-                    await asyncio.sleep(RECONNECT_DELAY)
-                    continue
-
             try:
-                async for message in self._gateway.async_listen():
-                    if not self._running:
-                        break
-                    self._handle_message(message)
+                if self._gateway is None:
+                    self._gateway = self._build_gateway()
+
+                # Pass logger explicitly to avoid the NoneType bug
+                self._event_session = OWNEventSession(
+                    gateway=self._gateway,
+                    logger=_LOGGER,
+                )
+                await self._event_session.connect()
+                self._connected = True
+                _LOGGER.info(
+                    "Event session started for gateway %s", self.mac
+                )
+
+                while self._running:
+                    message = await self._event_session.get_next()
+                    if message is None:
+                        continue
+                    if isinstance(message, OWNMessage):
+                        self._handle_message(message)
+
             except asyncio.CancelledError:
                 break
             except Exception:
@@ -112,11 +137,17 @@ class MyHOMEGatewayCoordinator:
                         self.mac, RECONNECT_DELAY,
                     )
                 self._connected = False
+                if self._event_session:
+                    try:
+                        await self._event_session.close()
+                    except Exception:
+                        pass
+                    self._event_session = None
                 if self._running:
                     await asyncio.sleep(RECONNECT_DELAY)
 
     @callback
-    def _handle_message(self, message: OWNdMessage) -> None:
+    def _handle_message(self, message: OWNMessage) -> None:
         """Dispatch an incoming OWNd message to entities and pending requests."""
         who = getattr(message, "who", None)
         where = getattr(message, "where", None)
@@ -142,35 +173,36 @@ class MyHOMEGatewayCoordinator:
 
     async def async_send_message(self, message: str) -> None:
         """Send a raw OpenWebNet frame to the gateway."""
-        if self._gateway and self._connected:
-            try:
-                await self._gateway.async_send_message(message)
-            except Exception:
-                _LOGGER.debug(
-                    "Could not send message `%s` to gateway %s (not connected?)",
-                    message, self.mac,
-                )
+        if not self._gateway:
+            self._gateway = self._build_gateway()
+
+        try:
+            await OWNCommandSession.send_to_gateway(
+                message=message,
+                gateway=self._gateway,
+            )
+        except Exception:
+            _LOGGER.debug(
+                "Could not send message `%s` to gateway %s",
+                message, self.mac,
+            )
 
     async def async_request_state(
         self, who: int, where: str, timeout: float = POLL_TIMEOUT
-    ) -> OWNdMessage | None:
-        """Send a state request (*#WHO*WHERE##) and wait for the response.
-
-        Returns the response message or None on timeout.
-        """
-        if not self._gateway or not self._connected:
+    ) -> OWNMessage | None:
+        """Send a state request (*#WHO*WHERE##) and wait for the response."""
+        if not self._connected:
             return None
 
         pending_key = f"{who}_{where}"
         frame = f"*#{who}*{where}##"
 
-        # Create a future for the response
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[OWNdMessage] = loop.create_future()
+        future: asyncio.Future[OWNMessage] = loop.create_future()
         self._pending[pending_key] = future
 
         try:
-            await self._gateway.async_send_message(frame)
+            await self.async_send_message(frame)
             return await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
             _LOGGER.debug(
@@ -191,7 +223,6 @@ class MyHOMEGatewayCoordinator:
         """Stop listener and disconnect."""
         self._running = False
 
-        # Cancel all pending requests
         for future in self._pending.values():
             if not future.done():
                 future.cancel()
@@ -204,11 +235,12 @@ class MyHOMEGatewayCoordinator:
             except asyncio.CancelledError:
                 pass
 
-        if self._gateway:
+        if self._event_session:
             try:
-                await self._gateway.async_disconnect()
+                await self._event_session.close()
             except Exception:
                 pass
+            self._event_session = None
 
         self._connected = False
         _LOGGER.info("Disconnected from gateway %s", self.mac)
