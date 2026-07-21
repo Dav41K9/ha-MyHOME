@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
-import yaml
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -34,6 +32,7 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_DEVICE_TYPE,
     CONF_DIMMABLE,
+    CONF_FRAME,
     CONF_GATEWAY_NAME,
     CONF_HEAT,
     CONF_HOST,
@@ -41,26 +40,30 @@ from .const import (
     CONF_MANUFACTURER,
     CONF_MODEL,
     CONF_NAME,
+    CONF_OFF_VALUE,
+    CONF_ON_VALUE,
     CONF_PASSWORD,
     CONF_PORT,
     CONF_SENSOR_CLASS,
     CONF_STANDALONE,
     CONF_WHERE,
+    CONF_WHO,
     CONF_ZONE,
     DEFAULT_PASSWORD,
     DEFAULT_PORT,
     DOMAIN,
-    OLD_YAML_PATH,
+    SUBENTRY_BINARY_SENSOR,
+    SUBENTRY_BUTTON,
     SUBENTRY_CLIMATE,
     SUBENTRY_COVER,
     SUBENTRY_LIGHT,
     SUBENTRY_SENSOR,
     SUBENTRY_SWITCH,
-    SUBENTRY_BINARY_SENSOR,
-    SUBENTRY_BUTTON,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# ── Schemi ───────────────────────────────────────────────────────────
 
 GATEWAY_SCHEMA = vol.Schema(
     {
@@ -171,6 +174,8 @@ DEVICE_RECONFIGURE_SCHEMA = vol.Schema(
 )
 
 
+# ── Config Flow principale (gateway) ────────────────────────────────
+
 class MyHOMEConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BTicino MyHOME."""
 
@@ -187,24 +192,18 @@ class MyHOMEConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(mac)
             self._abort_if_unique_id_configured()
 
-            # Test connection
+            # Test connessione TCP semplice (non dipende dall'API OWNd)
             try:
-                from OWNd import OWNdGateway
-
-                gw = OWNdGateway(
-                    address=str(user_input[CONF_HOST]),
-                    port=int(user_input[CONF_PORT]),
-                    password=str(user_input[CONF_PASSWORD]),
-                    mac=mac,
+                _, writer = await asyncio.wait_for(
+                    asyncio.open_connection(
+                        str(user_input[CONF_HOST]),
+                        int(user_input[CONF_PORT]),
+                    ),
+                    timeout=10,
                 )
-                connected = await asyncio.wait_for(
-                    gw.async_connect(), timeout=10
-                )
-                if connected:
-                    await gw.async_disconnect()
-                else:
-                    errors["base"] = "cannot_connect"
-            except asyncio.TimeoutError:
+                writer.close()
+                await writer.wait_closed()
+            except (asyncio.TimeoutError, OSError):
                 errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Unexpected error during gateway setup")
@@ -279,6 +278,8 @@ class MyHOMEConfigFlow(ConfigFlow, domain=DOMAIN):
         }
 
 
+# ── Subentry Flow (dispositivi) ─────────────────────────────────────
+
 class MyHOMEDeviceSubentryFlow(ConfigSubentryFlow):
     """Handle subentry flow for adding/modifying a MyHOME device."""
 
@@ -297,7 +298,7 @@ class MyHOMEDeviceSubentryFlow(ConfigSubentryFlow):
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
-            # Ensure manufacturer/model are strings (fix for the list bug)
+            # Forza manufacturer/model a stringa (fix per il bug della lista)
             user_input[CONF_MANUFACTURER] = str(
                 user_input.get(CONF_MANUFACTURER, "BTicino")
             )
