@@ -56,6 +56,8 @@ from .const import (
     SUBENTRY_LIGHT,
     SUBENTRY_SENSOR,
     SUBENTRY_SWITCH,
+    SUBENTRY_BINARY_SENSOR,
+    SUBENTRY_BUTTON,
 )
 
 _LOGGER = logging.getLogger(__name__)
