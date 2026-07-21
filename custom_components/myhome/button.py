@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -51,5 +50,5 @@ class MyHOMEButton(MyHOMEEntity, ButtonEntity):
             await self._coordinator.async_send_message(self._frame)
             _LOGGER.debug(
                 "Button '%s' sent frame `%s` to gateway %s",
-                self._attr_name, self._frame, self._coordinator.mac,
+                self.name, self._frame, self._coordinator.mac,
             )
