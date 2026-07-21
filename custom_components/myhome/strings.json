@@ -1,0 +1,111 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Gateway MyHOME",
+        "description": "Inserisci i dati di connessione del gateway BTicino.",
+        "data": {
+          "gateway_name": "Nome gateway",
+          "host": "Indirizzo IP",
+          "port": "Porta",
+          "password": "Password OpenWebNet",
+          "mac": "Indirizzo MAC"
+        }
+      },
+      "reconfigure": {
+        "title": "Riconfigura gateway",
+        "data": {
+          "gateway_name": "Nome gateway",
+          "host": "Indirizzo IP",
+          "port": "Porta",
+          "password": "Password OpenWebNet",
+          "mac": "Indirizzo MAC"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi al gateway. Verifica IP, porta e password.",
+      "unknown": "Errore imprevisto."
+    },
+    "abort": {
+      "already_configured": "Questo gateway è già configurato.",
+      "reconfigure_successful": "Gateway riconfigurato con successo."
+    }
+  },
+  "config_subentries": {
+    "light": {
+      "title": "Luce",
+      "step": {
+        "user": {
+          "title": "Aggiungi luce",
+          "data": {
+            "device_type": "Tipo dispositivo",
+            "name": "Nome",
+            "where": "Where (indirizzo A/PL)",
+            "dimmable": "Dimmerabile",
+            "advanced": "Avanzato",
+            "zone": "Zona",
+            "heat": "Riscaldamento",
+            "cool": "Raffrescamento",
+            "standalone": "Standalone",
+            "sensor_class": "Classe sensore",
+            "device_class": "Classe dispositivo",
+            "manufacturer": "Produttore",
+            "model": "Modello"
+          }
+        },
+        "reconfigure": {
+          "title": "Modifica luce",
+          "data": {
+            "name": "Nome",
+            "where": "Where (indirizzo A/PL)",
+            "dimmable": "Dimmerabile",
+            "manufacturer": "Produttore",
+            "model": "Modello"
+          }
+        }
+      },
+      "abort": {
+        "already_configured": "Questo dispositivo è già configurato."
+      }
+    },
+    "switch": {
+      "title": "Switch",
+      "step": {
+        "user": { "title": "Aggiungi switch" },
+        "reconfigure": { "title": "Modifica switch" }
+      }
+    },
+    "cover": {
+      "title": "Tapparella",
+      "step": {
+        "user": { "title": "Aggiungi tapparella/tenda" },
+        "reconfigure": { "title": "Modifica tapparella/tenda" }
+      }
+    },
+    "climate": {
+      "title": "Termostato",
+      "step": {
+        "user": { "title": "Aggiungi zona climatica" },
+        "reconfigure": { "title": "Modifica zona climatica" }
+      }
+    },
+    "sensor": {
+      "title": "Sensore",
+      "step": {
+        "user": { "title": "Aggiungi sensore" },
+        "reconfigure": { "title": "Modifica sensore" }
+      }
+    }
+  },
+  "services": {
+    "sync_time": {
+      "name": "Sincronizza orologio",
+      "description": "Sincronizza l'orologio del gateway MyHOME."
+    },
+    "send_message": {
+      "name": "Invia messaggio",
+      "description": "Invia un frame OpenWebNet raw al gateway."
+    }
+  }
+}
