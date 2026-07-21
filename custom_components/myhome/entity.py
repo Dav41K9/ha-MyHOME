@@ -27,6 +27,9 @@ class MyHOMEEntity(Entity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
+    # Nome entity lasciato a None: l'entity eredita il nome del device,
+    # così l'entity_id risulta pulito (es. light.lampada_tv) senza duplicazioni.
+    _attr_name = None
 
     def __init__(
         self,
@@ -41,18 +44,18 @@ class MyHOMEEntity(Entity):
         self._subentry_data = subentry_data
 
         self._where: str = str(subentry_data.get(CONF_WHERE, ""))
-        self._attr_name: str = str(subentry_data.get(CONF_NAME, "MyHOME Device"))
+        device_name: str = str(subentry_data.get(CONF_NAME, "MyHOME Device"))
 
         mac = coordinator.mac
         self._attr_unique_id = f"{mac}-{subentry_id}"
 
-        # FIX: force manufacturer/model to string (old code passed a list)
+        # Forza manufacturer/model a stringa (fix per il vecchio bug della lista)
         manufacturer = str(subentry_data.get(CONF_MANUFACTURER, "BTicino"))
         model = str(subentry_data.get(CONF_MODEL, ""))
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{mac}-{self._where}")},
-            name=self._attr_name,
+            name=device_name,
             manufacturer=manufacturer,
             model=model,
             via_device=(DOMAIN, mac),
