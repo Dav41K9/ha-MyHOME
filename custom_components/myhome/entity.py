@@ -1,78 +1,36 @@
-"""Base entity for BTicino MyHOME devices."""
-
+"""Base entity for BTicino MyHOME integration."""
 from __future__ import annotations
 
-import logging
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import (
-    CONF_MANUFACTURER,
-    CONF_MODEL,
-    CONF_NAME,
-    CONF_WHERE,
-    DOMAIN,
-    SIGNAL_MYHOME_EVENT,
-)
+from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import MyHOMEGatewayCoordinator
 
-_LOGGER = logging.getLogger(__name__)
+class MyHOMEEntity(CoordinatorEntity[MyHOMEGatewayCoordinator], Entity):
+    """Base entity for BTicino MyHOME integration."""
 
-
-class MyHOMEEntity(Entity):
-    """Base class for all MyHOME entities."""
-
-    _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_name = None  # eredita il nome del device -> entity_id pulita
+    _attr_should_poll = False
 
     def __init__(
         self,
         coordinator: MyHOMEGatewayCoordinator,
-        entry: ConfigEntry,
-        subentry_id: str,
-        subentry_data: dict,
+        device_name: str,
+        where: str,
+        mac: str,
     ) -> None:
-        self._coordinator = coordinator
-        self._entry = entry
-        self._subentry_id = subentry_id
-        self._subentry_data = subentry_data
-
-        self._where: str = str(subentry_data.get(CONF_WHERE, ""))
-        device_name: str = str(subentry_data.get(CONF_NAME, "MyHOME Device"))
-
-        mac = coordinator.mac
-        self._attr_unique_id = f"{mac}-{subentry_id}"
-
-        manufacturer = str(subentry_data.get(CONF_MANUFACTURER, "BTicino"))
-        model = str(subentry_data.get(CONF_MODEL, ""))
-
+        """Initialize the entity."""
+        super().__init__(coordinator)
+        self._where = where
+        self._attr_name = device_name
+        self._attr_unique_id = f"{mac}-{where}"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"{mac}-{self._where}")},
+            identifiers={(DOMAIN, f"{mac}-{where}")},
             name=device_name,
-            manufacturer=manufacturer,
-            model=model,
-            via_device=(DOMAIN, mac),
-            config_subentry_id=subentry_id,
+            manufacturer=MANUFACTURER,
+            model=MODEL,
+            via_device=(DOMAIN, mac),  # Collegamento al gateway
+            configuration_url=f"http://{coordinator.host}:{coordinator.port}",
         )
-
-    async def async_added_to_hass(self) -> None:
-        """Register the bus event listener (no initial polling)."""
-        who = self._get_who()
-        signal = SIGNAL_MYHOME_EVENT.format(
-            mac=self._coordinator.mac, who=str(who), where=self._where
-        )
-        self.async_on_remove(
-            async_dispatcher_connect(self.hass, signal, self._handle_event)
-        )
-
-    def _get_who(self) -> int:
-        """Return the OWNd WHO for this entity type. Override in subclasses."""
-        return 1
-
-    def _handle_event(self, message) -> None:
-        """Handle an incoming OWNd message. Override in subclasses."""
-        self.async_write_ha_state()
