@@ -27,9 +27,7 @@ class MyHOMEEntity(Entity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    # Nome entity lasciato a None: l'entity eredita il nome del device,
-    # così l'entity_id risulta pulito (es. light.lampada_tv) senza duplicazioni.
-    _attr_name = None
+    _attr_name = None  # eredita il nome del device -> entity_id pulita
 
     def __init__(
         self,
@@ -49,7 +47,6 @@ class MyHOMEEntity(Entity):
         mac = coordinator.mac
         self._attr_unique_id = f"{mac}-{subentry_id}"
 
-        # Forza manufacturer/model a stringa (fix per il vecchio bug della lista)
         manufacturer = str(subentry_data.get(CONF_MANUFACTURER, "BTicino"))
         model = str(subentry_data.get(CONF_MODEL, ""))
 
@@ -59,10 +56,11 @@ class MyHOMEEntity(Entity):
             manufacturer=manufacturer,
             model=model,
             via_device=(DOMAIN, mac),
+            config_subentry_id=subentry_id,
         )
 
     async def async_added_to_hass(self) -> None:
-        """Register event listener and request initial state."""
+        """Register the bus event listener (no initial polling)."""
         who = self._get_who()
         signal = SIGNAL_MYHOME_EVENT.format(
             mac=self._coordinator.mac, who=str(who), where=self._where
@@ -70,12 +68,6 @@ class MyHOMEEntity(Entity):
         self.async_on_remove(
             async_dispatcher_connect(self.hass, signal, self._handle_event)
         )
-
-        # Request initial state (replaces the old broken polling)
-        await self._async_request_initial_state()
-
-    async def _async_request_initial_state(self) -> None:
-        """Request the initial state from the gateway. Override in subclasses."""
 
     def _get_who(self) -> int:
         """Return the OWNd WHO for this entity type. Override in subclasses."""
