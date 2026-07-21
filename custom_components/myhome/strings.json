@@ -96,6 +96,46 @@
         "user": { "title": "Aggiungi sensore" },
         "reconfigure": { "title": "Modifica sensore" }
       }
+    },
+    "binary_sensor": {
+      "title": "Sensore binario",
+      "step": {
+        "user": {
+          "title": "Aggiungi sensore binario",
+          "data": {
+            "device_type": "Tipo dispositivo",
+            "name": "Nome",
+            "where": "Where (indirizzo A/PL)",
+            "who": "WHO (default 1)",
+            "on_value": "Valore ON (default 1)",
+            "off_value": "Valore OFF (default 0)",
+            "device_class": "Classe (motion/door/window/...)",
+            "manufacturer": "Produttore",
+            "model": "Modello"
+          }
+        },
+        "reconfigure": {
+          "title": "Modifica sensore binario"
+        }
+      }
+    },
+    "button": {
+      "title": "Button",
+      "step": {
+        "user": {
+          "title": "Aggiungi button",
+          "data": {
+            "device_type": "Tipo dispositivo",
+            "name": "Nome",
+            "frame": "Frame OpenWebNet (es. *0*1*31##)",
+            "manufacturer": "Produttore",
+            "model": "Modello"
+          }
+        },
+        "reconfigure": {
+          "title": "Modifica button"
+        }
+      }
     }
   },
   "services": {
