@@ -1,118 +1,111 @@
 {
-  "title": "MyHome",
   "config": {
-    "flow_title": "Gateway MyHome {name} ({host})",
     "step": {
       "user": {
-        "title": "Scegli il tuo gateway \"MyHome\"",
+        "title": "Gateway MyHOME",
+        "description": "Inserisci i dati di connessione del gateway BTicino.",
         "data": {
-          "host": "Indirizzo Ip"
-        }
-      },
-      "port": {
-        "title": "Porta del Gateway",
-        "description": "Inserisci la porta utilizzata per la comunicazione OpenWebNet con il gateway {name} {host}",
-        "data": {
-          "port": "Porta"
-        }
-      },
-      "password": {
-        "title": "Porta del Gateway",
-        "description": "Inserisci la password OpenWebNet per il gateway {name} {host}",
-        "data": {
-          "password": "Password"
-        }
-      },
-      "custom": {
-        "title": "Inserimento manuale gateway",
-        "description": "Compila con le impostazioni del tuo gateway",
-        "data": {
-          "address": "Indirizzo IP",
+          "gateway_name": "Nome gateway",
+          "host": "Indirizzo IP",
           "port": "Porta",
-          "serialNumber": "Indirizzo MAC",
-          "modelName": "Tipo di gateway"
+          "password": "Password OpenWebNet",
+          "mac": "Indirizzo MAC"
+        }
+      },
+      "reconfigure": {
+        "title": "Riconfigura gateway",
+        "data": {
+          "gateway_name": "Nome gateway",
+          "host": "Indirizzo IP",
+          "port": "Porta",
+          "password": "Password OpenWebNet",
+          "mac": "Indirizzo MAC"
         }
       }
     },
     "error": {
-      "invalid_port": "Porta non valida",
-      "invalid_ip": "Indirizzo IP non valido",
-      "invalid_mac": "Indirizzo MAC non valido",
-      "invalid_password": "Password non valida",
-      "password_retry": "Il gateway non ha accettato la password, aspetta 60s prima di riprovare.",
-      "password_error": "Password non valida"
+      "cannot_connect": "Impossibile connettersi al gateway. Verifica IP, porta e password.",
+      "unknown": "Errore imprevisto."
     },
     "abort": {
-      "discover_timeout": "Impossibile trovare il gateway MyHome",
-      "no_gateways": "Nessun gateway MyHome trovato",
-      "all_configured": "Tutti i gateway MyHome sono già configurati",
-      "unknown": "Si è verificato un errore sconosciuto",
-      "cannot_connect": "Impossibile connettersi al gateway",
-      "already_configured": "Questo gateway è già configurato",
-      "already_in_progress": "La configurazione di questo gateway è già in corso",
-      "reauth_successful": "Nuova password accettata"
+      "already_configured": "Questo gateway è già configurato.",
+      "reconfigure_successful": "Gateway riconfigurato con successo."
     }
   },
-  "options": {
-    "step": {
-      "user": {
-        "title": "Opzioni MyHome",
-        "description": "Impostazioni di sistema avanzate",
-        "data": {
-          "address": "Indirizzo IP",
-          "password": "Password",
-          "config_file_path": "Percorso del file di configurazione",
-          "command_worker_count": "Numero di sessioni di comando simultanee",
-          "generate_events": "Genera eventi in Home Assistant per ogni messaggio ricevuto"
+  "config_subentries": {
+    "light": {
+      "title": "Luce",
+      "step": {
+        "user": {
+          "title": "Aggiungi luce",
+          "data": {
+            "device_type": "Tipo dispositivo",
+            "name": "Nome",
+            "where": "Where (indirizzo A/PL)",
+            "dimmable": "Dimmerabile",
+            "advanced": "Avanzato",
+            "zone": "Zona",
+            "heat": "Riscaldamento",
+            "cool": "Raffrescamento",
+            "standalone": "Standalone",
+            "sensor_class": "Classe sensore",
+            "device_class": "Classe dispositivo",
+            "manufacturer": "Produttore",
+            "model": "Modello"
+          }
+        },
+        "reconfigure": {
+          "title": "Modifica luce",
+          "data": {
+            "name": "Nome",
+            "where": "Where (indirizzo A/PL)",
+            "dimmable": "Dimmerabile",
+            "manufacturer": "Produttore",
+            "model": "Modello"
+          }
         }
+      },
+      "abort": {
+        "already_configured": "Questo dispositivo è già configurato."
       }
     },
-    "error": {
-      "invalid_ip": "Indirizzo IP non valido",
-      "invalid_worker_count": "I workers devono essere compresi tra 1 e 10",
-      "invalid_config_path": "Il file di configurazione non esiste in questo percorso",
-      "invalid_password": "Password non valida",
-      "password_error": "Errore password"
+    "switch": {
+      "title": "Switch",
+      "step": {
+        "user": { "title": "Aggiungi switch" },
+        "reconfigure": { "title": "Modifica switch" }
+      }
+    },
+    "cover": {
+      "title": "Tapparella",
+      "step": {
+        "user": { "title": "Aggiungi tapparella/tenda" },
+        "reconfigure": { "title": "Modifica tapparella/tenda" }
+      }
+    },
+    "climate": {
+      "title": "Termostato",
+      "step": {
+        "user": { "title": "Aggiungi zona climatica" },
+        "reconfigure": { "title": "Modifica zona climatica" }
+      }
+    },
+    "sensor": {
+      "title": "Sensore",
+      "step": {
+        "user": { "title": "Aggiungi sensore" },
+        "reconfigure": { "title": "Modifica sensore" }
+      }
     }
   },
   "services": {
     "sync_time": {
-      "name": "Syncronize time",
-      "description": "Syncronize gateway's time to HA local time.",
-      "fields": {
-        "gateway": {
-          "name": "Gateway",
-          "description": "The gateway's MAC address, as present in the config."
-        }
-      }
+      "name": "Sincronizza orologio",
+      "description": "Sincronizza l'orologio del gateway MyHOME."
     },
     "send_message": {
-      "name": "Send message",
-      "description": "Send an arbitrary (but valid) OpenWebNet message to the gateway.",
-      "fields": {
-        "gateway": {
-          "name": "Gateway",
-          "description": "The gateway's MAC address, as present in the config."
-        },
-        "message": {
-          "name": "Message",
-          "description": "Valid OpenWebNet message."
-        }
-      }
-    },
-    "start_sending_instant_power": {
-      "name": "Start sending instant power",
-      "description": "Get automatic instant power draw updates for a sensor.",
-      "fields": {
-        "entity_id": {
-          "name": "Entity",
-          "description": "Name(s) of entities that will start sending instant power information."
-        },
-        "duration": {
-          "name": "Duration",
-          "description": "For how long the instant power information will be sent."
-        }
-      }
+      "name": "Invia messaggio",
+      "description": "Invia un frame OpenWebNet raw al gateway."
     }
   }
 }
