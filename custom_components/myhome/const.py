@@ -32,7 +32,7 @@ SUBENTRY_CLIMATE = "climate"
 SUBENTRY_SENSOR = "sensor"
 
 # Platforms
-PLATFORMS = ["light", "switch", "cover", "climate", "sensor"]
+PLATFORMS = ["light", "switch", "cover", "climate", "sensor", "button", "binary_sensor"]
 
 # OWNd WHO values
 WHO_LIGHTING = 1
@@ -43,6 +43,16 @@ WHO_ENERGY = 18
 # Defaults
 DEFAULT_PORT = 20000
 DEFAULT_PASSWORD = "12345"
+
+# Additional subentry keys
+CONF_FRAME = "frame"
+CONF_WHO = "who"
+CONF_ON_VALUE = "on_value"
+CONF_OFF_VALUE = "off_value"
+
+# Additional subentry types
+SUBENTRY_BUTTON = "button"
+SUBENTRY_BINARY_SENSOR = "binary_sensor"
 
 # YAML migration
 OLD_YAML_PATH = "myhome.yaml"
