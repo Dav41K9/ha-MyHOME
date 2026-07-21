@@ -1,48 +1,55 @@
-"""Constants for the MyHome component."""
-import logging
+"""Constants for the BTicino MyHOME integration."""
 
-LOGGER = logging.getLogger(__package__)
 DOMAIN = "myhome"
 
-ATTR_GATEWAY = "gateway"
-ATTR_MESSAGE = "message"
+# Config entry keys
+CONF_GATEWAY_NAME = "gateway_name"
+CONF_MAC = "mac"
+CONF_HOST = "host"
+CONF_PORT = "port"
+CONF_PASSWORD = "password"
 
-CONF = "config"
-CONF_ENTITY = "entity"
-CONF_ENTITIES = "entities"
-CONF_ENTITY_NAME = "entity_name"
-CONF_ICON = "icon"
-CONF_ICON_ON = "icon_on"
-CONF_PLATFORMS = "platforms"
-CONF_ADDRESS = "address"
-CONF_OWN_PASSWORD = "password"
-CONF_FIRMWARE = "firmware"
-CONF_SSDP_LOCATION = "ssdp_location"
-CONF_SSDP_ST = "ssdp_st"
-CONF_DEVICE_TYPE = "deviceType"
-CONF_DEVICE_MODEL = "model"
-CONF_MANUFACTURER = "manufacturer"
-CONF_MANUFACTURER_URL = "manufacturerURL"
-CONF_UDN = "UDN"
-CONF_WORKER_COUNT = "command_worker_count"
-CONF_FILE_PATH = "config_file_path"
-CONF_GENERATE_EVENTS = "generate_events"
-CONF_PARENT_ID = "parent_id"
-CONF_WHO = "who"
+# Subentry keys
+CONF_DEVICE_TYPE = "device_type"
 CONF_WHERE = "where"
-CONF_BUS_INTERFACE = "interface"
-CONF_ZONE = "zone"
+CONF_NAME = "name"
 CONF_DIMMABLE = "dimmable"
-CONF_GATEWAY = "gateway"
-CONF_DEVICE_CLASS = "class"
-CONF_INVERTED = "inverted"
-CONF_ADVANCED_SHUTTER = "advanced"
-CONF_HEATING_SUPPORT = "heat"
-CONF_COOLING_SUPPORT = "cool"
-CONF_FAN_SUPPORT = "fan"
+CONF_ADVANCED = "advanced"
+CONF_ZONE = "zone"
+CONF_HEAT = "heat"
+CONF_COOL = "cool"
 CONF_STANDALONE = "standalone"
-CONF_CENTRAL = "central"
-CONF_SHORT_PRESS = "pushbutton_short_press"
-CONF_SHORT_RELEASE = "pushbutton_short_release"
-CONF_LONG_PRESS = "pushbutton_long_press"
-CONF_LONG_RELEASE = "pushbutton_long_release"
+CONF_SENSOR_CLASS = "sensor_class"
+CONF_DEVICE_CLASS = "device_class"
+CONF_MANUFACTURER = "manufacturer"
+CONF_MODEL = "model"
+
+# Subentry types
+SUBENTRY_LIGHT = "light"
+SUBENTRY_SWITCH = "switch"
+SUBENTRY_COVER = "cover"
+SUBENTRY_CLIMATE = "climate"
+SUBENTRY_SENSOR = "sensor"
+
+# Platforms
+PLATFORMS = ["light", "switch", "cover", "climate", "sensor"]
+
+# OWNd WHO values
+WHO_LIGHTING = 1
+WHO_AUTOMATION = 2
+WHO_THERMOREGULATION = 4
+WHO_ENERGY = 18
+
+# Defaults
+DEFAULT_PORT = 20000
+DEFAULT_PASSWORD = "12345"
+
+# YAML migration
+OLD_YAML_PATH = "myhome.yaml"
+
+# Dispatcher signal
+SIGNAL_MYHOME_EVENT = "myhome_event_{mac}_{who}_{where}"
+
+# Reconnect
+RECONNECT_DELAY = 10
+POLL_TIMEOUT = 3.0
