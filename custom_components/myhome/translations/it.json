@@ -2,110 +2,32 @@
   "config": {
     "step": {
       "user": {
-        "title": "Gateway MyHOME",
-        "description": "Inserisci i dati di connessione del gateway BTicino.",
+        "title": "Gateway BTicino MyHOME",
+        "description": "Inserisci i dati di connessione del webserver (MyHomeServer1 / F454 / MH202).",
         "data": {
-          "gateway_name": "Nome gateway",
+          "name": "Nome",
           "host": "Indirizzo IP",
           "port": "Porta",
           "password": "Password OpenWebNet",
-          "mac": "Indirizzo MAC"
-        }
-      },
-      "reconfigure": {
-        "title": "Riconfigura gateway",
-        "data": {
-          "gateway_name": "Nome gateway",
-          "host": "Indirizzo IP",
-          "port": "Porta",
-          "password": "Password OpenWebNet",
-          "mac": "Indirizzo MAC"
+          "mac": "MAC address"
         }
       }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi al gateway. Verifica IP, porta e password.",
-      "unknown": "Errore imprevisto."
+      "cannot_connect": "Impossibile connettersi al gateway.",
+      "invalid_auth": "Password non valida o richiesta.",
+      "invalid_mac": "MAC address non valido."
     },
     "abort": {
-      "already_configured": "Questo gateway è già configurato.",
-      "reconfigure_successful": "Gateway riconfigurato con successo."
+      "already_configured": "Questo gateway è già configurato."
     }
   },
   "config_subentries": {
-    "light": {
-      "title": "Luce",
-      "step": {
-        "user": {
-          "title": "Aggiungi luce",
-          "data": {
-            "device_type": "Tipo dispositivo",
-            "name": "Nome",
-            "where": "Where (indirizzo A/PL)",
-            "dimmable": "Dimmerabile",
-            "advanced": "Avanzato",
-            "zone": "Zona",
-            "heat": "Riscaldamento",
-            "cool": "Raffrescamento",
-            "standalone": "Standalone",
-            "sensor_class": "Classe sensore",
-            "device_class": "Classe dispositivo",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
-        },
-        "reconfigure": {
-          "title": "Modifica luce",
-          "data": {
-            "name": "Nome",
-            "where": "Where (indirizzo A/PL)",
-            "dimmable": "Dimmerabile",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
-        }
-      },
-      "abort": {
-        "already_configured": "Questo dispositivo è già configurato."
-      }
-    },
-    "switch": {
-      "title": "Switch",
-      "step": {
-        "user": { "title": "Aggiungi switch" },
-        "reconfigure": { "title": "Modifica switch" }
-      }
-    },
-    "cover": {
-      "title": "Tapparella",
-      "step": {
-        "user": { "title": "Aggiungi tapparella/tenda" },
-        "reconfigure": { "title": "Modifica tapparella/tenda" }
-      }
-    },
-    "climate": {
-      "title": "Termostato",
-      "step": {
-        "user": { "title": "Aggiungi zona climatica" },
-        "reconfigure": { "title": "Modifica zona climatica" }
-      }
-    },
-    "sensor": {
-      "title": "Sensore",
-      "step": {
-        "user": { "title": "Aggiungi sensore" },
-        "reconfigure": { "title": "Modifica sensore" }
-      }
-    }
-  },
-  "services": {
-    "sync_time": {
-      "name": "Sincronizza orologio",
-      "description": "Sincronizza l'orologio del gateway MyHOME."
-    },
-    "send_message": {
-      "name": "Invia messaggio",
-      "description": "Invia un frame OpenWebNet raw al gateway."
-    }
+    "light": {"title": "Luce", "step": {"user": {"title": "Nuova luce", "data": {"name": "Nome", "where": "Indirizzo (A/PL, es. 23 o 0115)", "dimmable": "Dimmerabile", "manufacturer": "Produttore", "model": "Modello"}}}},
+    "switch": {"title": "Switch / Presa", "step": {"user": {"title": "Nuovo switch", "data": {"name": "Nome", "where": "Indirizzo (A/PL)", "device_class": "Tipo", "manufacturer": "Produttore", "model": "Modello"}}}},
+    "cover": {"title": "Tapparella / Tenda", "step": {"user": {"title": "Nuova tapparella", "data": {"name": "Nome", "where": "Indirizzo (A/PL)", "advanced": "Posizionamento avanzato", "manufacturer": "Produttore", "model": "Modello"}}}},
+    "climate": {"title": "Zona termoregolazione", "step": {"user": {"title": "Nuova zona", "data": {"name": "Nome", "where": "Zona (es. 1)", "heat": "Riscaldamento", "cool": "Raffrescamento", "standalone": "Standalone", "manufacturer": "Produttore", "model": "Modello"}}}},
+    "sensor": {"title": "Sensore", "step": {"user": {"title": "Nuovo sensore", "data": {"name": "Nome", "where": "Indirizzo sensore", "device_class": "Classe", "manufacturer": "Produttore", "model": "Modello"}}}},
+    "binary_sensor": {"title": "Sensore binario", "step": {"user": {"title": "Nuovo sensore binario", "data": {"name": "Nome", "where": "Indirizzo", "who": "Protocollo (25=contatto, 1=motion, 9=aux)", "device_class": "Classe", "inverted": "Inverti stato", "manufacturer": "Produttore", "model": "Modello"}}}}
   }
 }
