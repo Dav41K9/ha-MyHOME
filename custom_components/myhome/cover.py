@@ -1,10 +1,7 @@
-"""Cover platform for BTicino MyHOME."""
-
+"""Covers / shutters (WHO 2)."""
 from __future__ import annotations
 
-import logging
-from typing import Any
-
+from OWNd.message import OWNAutomationCommand, OWNAutomationEvent
 from homeassistant.components.cover import (
     ATTR_POSITION,
     CoverDeviceClass,
@@ -12,114 +9,67 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    CONF_ADVANCED,
-    SUBENTRY_COVER,
-    WHO_AUTOMATION,
-)
-from .coordinator import MyHOMEGatewayCoordinator
+from .const import CONF_ADVANCED, CONF_MANUFACTURER, CONF_MODEL, CONF_NAME, CONF_WHERE, SUBENTRY_COVER
 from .entity import MyHOMEEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up MyHOME covers from config entry subentries."""
-    coordinator: MyHOMEGatewayCoordinator = entry.runtime_data
-
-    entities = []
-    for subentry_id, subentry in entry.subentries.items():
-        if subentry.subentry_type == SUBENTRY_COVER:
-            entities.append(
-                MyHOMECover(coordinator, entry, subentry_id, subentry.data)
-            )
-
-    async_add_entities(entities)
+    coord = entry.runtime_data
+    async_add_entities(
+        MyHOMECover(coord, sub.subentry_id, sub.data)
+        for sub in entry.subentries.values()
+        if sub.subentry_type == SUBENTRY_COVER
+    )
 
 
 class MyHOMECover(MyHOMEEntity, CoverEntity):
-    """Representation of a MyHOME cover (tapparella/tenda)."""
-
-    _attr_device_class = CoverDeviceClass.SHUTTER
-
-    def __init__(self, coordinator, entry, subentry_id, data) -> None:
-        super().__init__(coordinator, entry, subentry_id, data)
-        self._advanced = bool(data.get(CONF_ADVANCED, False))
-        self._attr_current_cover_position = None
-        self._attr_is_closed = None
-
+    def __init__(self, coordinator, subentry_id: str, data: dict) -> None:
+        super().__init__(
+            coordinator,
+            subentry_id,
+            who=2,
+            where=data[CONF_WHERE],
+            name=data[CONF_NAME],
+            manufacturer=data.get(CONF_MANUFACTURER, ""),
+            model=data.get(CONF_MODEL, ""),
+        )
+        self._advanced = bool(data.get(CONF_ADVANCED, True))
+        feat = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
         if self._advanced:
-            self._attr_supported_features = (
-                CoverEntityFeature.OPEN
-                | CoverEntityFeature.CLOSE
-                | CoverEntityFeature.STOP
-                | CoverEntityFeature.SET_POSITION
+            feat |= CoverEntityFeature.SET_POSITION
+        self._attr_supported_features = feat
+        self._attr_device_class = CoverDeviceClass.SHUTTER
+        self._attr_is_closed = None
+        self._attr_current_cover_position = None
+
+    async def async_request_initial_state(self) -> None:
+        await self._coordinator.send_status_request(OWNAutomationCommand.status(self._where))
+
+    async def async_open_cover(self, **_) -> None:
+        await self._coordinator.send(OWNAutomationCommand.raise_shutter(self._where))
+
+    async def async_close_cover(self, **_) -> None:
+        await self._coordinator.send(OWNAutomationCommand.lower_shutter(self._where))
+
+    async def async_stop_cover(self, **_) -> None:
+        await self._coordinator.send(OWNAutomationCommand.stop_shutter(self._where))
+
+    async def async_set_cover_position(self, **kwargs) -> None:
+        if ATTR_POSITION in kwargs:
+            await self._coordinator.send(
+                OWNAutomationCommand.set_shutter_level(self._where, kwargs[ATTR_POSITION])
             )
-        else:
-            self._attr_supported_features = (
-                CoverEntityFeature.OPEN
-                | CoverEntityFeature.CLOSE
-                | CoverEntityFeature.STOP
-            )
 
-    def _get_who(self) -> int:
-        return WHO_AUTOMATION
-
-    async def _async_request_initial_state(self) -> None:
-        message = await self._coordinator.async_request_state(
-            WHO_AUTOMATION, self._where
-        )
-        if message:
-            self._parse_state(message)
-
-    @callback
-    def _handle_event(self, message) -> None:
-        self._parse_state(message)
+    def handle_event(self, message: OWNAutomationEvent) -> None:
+        self._attr_is_opening = message.is_opening
+        self._attr_is_closing = message.is_closing
+        if message.is_closed is not None:
+            self._attr_is_closed = message.is_closed
+        if message.current_position is not None:
+            self._attr_current_cover_position = message.current_position
         self.async_write_ha_state()
-
-    @callback
-    def _parse_state(self, message) -> None:
-        what = str(getattr(message, "what", ""))
-        # *2*WHERE*0## = stopped, *2*WHERE*1## = opening, *2*WHERE*2## = closing
-        if what == "0":
-            pass  # stopped, position unknown
-        elif what == "1":
-            self._attr_is_closed = False
-        elif what == "2":
-            self._attr_is_closed = True
-
-    async def async_open_cover(self, **kwargs: Any) -> None:
-        await self._coordinator.async_send_message(
-            f"*2*1*{self._where}##"
-        )
-        self._attr_is_closed = False
-        self.async_write_ha_state()
-
-    async def async_close_cover(self, **kwargs: Any) -> None:
-        await self._coordinator.async_send_message(
-            f"*2*2*{self._where}##"
-        )
-        self._attr_is_closed = True
-        self.async_write_ha_state()
-
-    async def async_stop_cover(self, **kwargs: Any) -> None:
-        await self._coordinator.async_send_message(
-            f"*2*0*{self._where}##"
-        )
-        self.async_write_ha_state()
-
-    async def async_set_cover_position(self, **kwargs: Any) -> None:
-        if ATTR_POSITION in kwargs and self._advanced:
-            position = kwargs[ATTR_POSITION]
-            await self._coordinator.async_send_message(
-                f"*2*11*{self._where}*{position}##"
-            )
-            self._attr_current_cover_position = position
-            self.async_write_ha_state()
