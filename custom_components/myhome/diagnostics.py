@@ -1,5 +1,4 @@
-"""Diagnostics support for BTicino MyHOME."""
-
+"""Diagnostics download."""
 from __future__ import annotations
 
 from typing import Any
@@ -7,27 +6,24 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_PASSWORD, DOMAIN
+from .const import CONF_PASSWORD
 
 
-async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, Any]:
-    """Return diagnostics for a config entry."""
-    data = dict(entry.data)
-    if CONF_PASSWORD in data:
-        data[CONF_PASSWORD] = "**REDACTED**"
-
-    subentries = {}
-    for sid, sub in entry.subentries.items():
-        subentries[sid] = {
-            "type": sub.subentry_type,
-            "title": sub.title,
-            "data": sub.data,
-        }
-
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+    coord = entry.runtime_data
+    redacted_data = {k: ("**REDACTED**" if k == CONF_PASSWORD else v) for k, v in entry.data.items()}
     return {
-        "entry": data,
-        "subentries": subentries,
-        "subentry_count": len(subentries),
+        "config_entry": {"title": entry.title, "data": redacted_data},
+        "subentries": [
+            {"id": s.subentry_id, "type": s.subentry_type, "title": s.title, "data": dict(s.data)}
+            for s in entry.subentries.values()
+        ],
+        "gateway": {
+            "mac": coord.mac,
+            "host": coord.host,
+            "port": coord.port,
+            "is_connected": coord.is_connected,
+            "model": coord.model,
+            "firmware": coord.firmware,
+        },
     }
