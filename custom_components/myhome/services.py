@@ -1,80 +1,58 @@
-"""Services for the BTicino MyHOME integration."""
-
+"""Domain services: sync_time, send_message, import_yaml."""
 from __future__ import annotations
-
-import logging
 
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from OWNd.message import OWNGatewayCommand
 
-from .const import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
-
-SERVICE_SYNC_TIME = "sync_time"
-SERVICE_SEND_MESSAGE = "send_message"
-SERVICE_MIGRATE_YAML = "migrate_yaml"
-
-ATTR_GATEWAY_MAC = "gateway_mac"
-ATTR_MESSAGE = "message"
-
-SYNC_TIME_SCHEMA = vol.Schema(
-    {vol.Required(ATTR_GATEWAY_MAC): cv.string}
+from .const import (
+    DOMAIN,
+    LOGGER,
+    SERVICE_IMPORT_YAML,
+    SERVICE_SEND_MESSAGE,
+    SERVICE_SYNC_TIME,
 )
-
-SEND_MESSAGE_SCHEMA = vol.Schema(
-    {
-        vol.Required(ATTR_GATEWAY_MAC): cv.string,
-        vol.Required(ATTR_MESSAGE): cv.string,
-    }
-)
-
-MIGRATE_YAML_SCHEMA = vol.Schema({})
+from .migrate_yaml import async_import_yaml
 
 
-async def async_setup_services(hass: HomeAssistant) -> None:
-    """Register MyHOME services (once)."""
+def _coord(hass: HomeAssistant, mac: str):
+    coord = hass.data.get(DOMAIN, {}).get(mac)
+    if coord is None:
+        raise ServiceValidationError(f"Gateway {mac} not found", translation_domain=DOMAIN)
+    return coord
+
+
+async def async_register_services(hass: HomeAssistant) -> None:
     if hass.services.has_service(DOMAIN, SERVICE_SYNC_TIME):
         return
 
-    async def handle_sync_time(call: ServiceCall) -> None:
-        mac = str(call.data[ATTR_GATEWAY_MAC])
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.data.get("mac") == mac and hasattr(entry, "runtime_data"):
-                coordinator = entry.runtime_data
-                await coordinator.async_send_message("*#13**1##")
-                return
+    async def _sync_time(call: ServiceCall) -> None:
+        coord = _coord(hass, call.data["gateway"])
+        await coord.send(OWNGatewayCommand.set_datetime_to_now(str(hass.config.time_zone)))
 
-    async def handle_send_message(call: ServiceCall) -> None:
-        mac = str(call.data[ATTR_GATEWAY_MAC])
-        message = str(call.data[ATTR_MESSAGE])
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.data.get("mac") == mac and hasattr(entry, "runtime_data"):
-                coordinator = entry.runtime_data
-                await coordinator.async_send_message(message)
-                return
+    async def _send_message(call: ServiceCall) -> None:
+        coord = _coord(hass, call.data["gateway"])
+        await coord.send_raw(call.data["message"])
 
-    async def handle_migrate_yaml(call: ServiceCall) -> None:
-        from .migrate_yaml import async_migrate_yaml_to_subentries
-
-        result = await async_migrate_yaml_to_subentries(hass)
-        _LOGGER.info("MyHOME YAML migration result:\n%s", result)
+    async def _import_yaml(call: ServiceCall) -> None:
+        await async_import_yaml(hass, call.data["path"])
 
     hass.services.async_register(
-        DOMAIN, SERVICE_SYNC_TIME, handle_sync_time, schema=SYNC_TIME_SCHEMA
+        DOMAIN, SERVICE_SYNC_TIME, _sync_time, schema=vol.Schema({vol.Required("gateway"): cv.string})
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_SEND_MESSAGE, handle_send_message, schema=SEND_MESSAGE_SCHEMA
+        DOMAIN,
+        SERVICE_SEND_MESSAGE,
+        _send_message,
+        schema=vol.Schema({vol.Required("gateway"): cv.string, vol.Required("message"): cv.string}),
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_MIGRATE_YAML, handle_migrate_yaml, schema=MIGRATE_YAML_SCHEMA
+        DOMAIN,
+        SERVICE_IMPORT_YAML,
+        _import_yaml,
+        schema=vol.Schema({vol.Optional("path", default="/config/myhome.yaml"): cv.string}),
     )
-
-
-async def async_unload_services(hass: HomeAssistant) -> None:
-    """Unregister MyHOME services."""
-    hass.services.async_remove(DOMAIN, SERVICE_SYNC_TIME)
-    hass.services.async_remove(DOMAIN, SERVICE_SEND_MESSAGE)
-    hass.services.async_remove(DOMAIN, SERVICE_MIGRATE_YAML)
+    LOGGER.info("MyHOME services registered")
