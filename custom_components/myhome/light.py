@@ -1,116 +1,106 @@
-"""Light platform for BTicino MyHOME integration."""
+"""Lights (WHO 1)."""
 from __future__ import annotations
 
-from typing import Any
-
+from OWNd.message import OWNLightingCommand, OWNLightingEvent
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_FLASH,
+    ATTR_TRANSITION,
+    FLASH_SHORT,
     ColorMode,
     LightEntity,
     LightEntityFeature,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    CONF_DONT_DIMMABLE,
+    CONF_DIMMABLE,
+    CONF_MANUFACTURER,
+    CONF_MODEL,
+    CONF_NAME,
     CONF_WHERE,
-    DOMAIN,
     SUBENTRY_LIGHT,
 )
 from .entity import MyHOMEEntity
-from .coordinator import MyHOMEGatewayCoordinator
+
+
+def _pct_to_8b(v: int) -> int:
+    return int(round(255 / 100 * v, 0))
+
+
+def _8b_to_pct(v: int) -> int:
+    return int(round(100 / 255 * v, 0))
+
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: dict[str, Any],
-    async_add_entities: AddEntitiesCallback,
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up light platform."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    subentries = entry.subentries
-
-    lights = []
-    for subentry_id, subentry in subentries.items():
-        if subentry.subentry_type == SUBENTRY_LIGHT:
-            lights.append(
-                MyHOMELight(
-                    coordinator,
-                    subentry.data[CONF_WHERE],
-                    subentry.data.get(CONF_DONT_DIMMABLE, False),
-                    subentry.data[CONF_NAME],
-                    coordinator.mac,
-                )
-            )
-
-    async_add_entities(lights)
+    coord = entry.runtime_data
+    entities = [
+        MyHOMELight(coord, sub.subentry_id, sub.data)
+        for sub in entry.subentries.values()
+        if sub.subentry_type == SUBENTRY_LIGHT
+    ]
+    async_add_entities(entities)
 
 
 class MyHOMELight(MyHOMEEntity, LightEntity):
-    """Representation of a BTicino MyHOME light."""
-
-    _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
-    _attr_supported_features = LightEntityFeature(0)
-
-    def __init__(
-        self,
-        coordinator: MyHOMEGatewayCoordinator,
-        where: str,
-        dimmable: bool,
-        name: str,
-        mac: str,
-    ) -> None:
-        """Initialize the light."""
-        super().__init__(coordinator, name, where, mac)
-        self._dimmable = not dimmable
-        self._attr_is_on = False
-        self._brightness = 255
-
-    @property
-    def is_on(self) -> bool:
-        """Return if the light is on."""
-        return self._attr_is_on
-
-    @property
-    def brightness(self) -> int | None:
-        """Return the brightness of the light."""
-        return self._brightness
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the light on."""
-        _LOGGER.debug("Turning on light %s (where=%s)", self.name, self._where)
-        
-        if ATTR_BRIGHTNESS in kwargs and self._dimmable:
-            brightness = kwargs[ATTR_BRIGHTNESS]
-            level = max(1, min(100, int(brightness * 100 / 255)))
-            frame = f"*1*1*{self._where}*{level}##"
+    def __init__(self, coordinator, subentry_id: str, data: dict) -> None:
+        super().__init__(
+            coordinator,
+            subentry_id,
+            who=1,
+            where=data[CONF_WHERE],
+            name=data[CONF_NAME],
+            manufacturer=data.get(CONF_MANUFACTURER, ""),
+            model=data.get(CONF_MODEL, ""),
+        )
+        self._dimmable = bool(data.get(CONF_DIMMABLE, False))
+        if self._dimmable:
+            self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+            self._attr_color_mode = ColorMode.BRIGHTNESS
+            self._attr_supported_features = LightEntityFeature.TRANSITION
         else:
-            frame = f"*1*1*{self._where}##"
-        
-        _LOGGER.debug("Sending frame: %s", frame)
-        
-        try:
-            await self.coordinator.async_send_message(frame)
-            self._attr_is_on = True
-            if ATTR_BRIGHTNESS in kwargs:
-                self._brightness = kwargs[ATTR_BRIGHTNESS]
-            self.async_write_ha_state()
-        except Exception as e:
-            _LOGGER.error("Failed to turn on light %s: %s", self.name, e)
-            raise
+            self._attr_supported_color_modes = {ColorMode.ONOFF}
+            self._attr_color_mode = ColorMode.ONOFF
+            self._attr_supported_features = LightEntityFeature.FLASH
+        self._attr_is_on = None
+        self._attr_brightness = None
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the light off."""
-        _LOGGER.debug("Turning off light %s (where=%s)", self.name, self._where)
-        
-        frame = f"*1*0*{self._where}##"
-        _LOGGER.debug("Sending frame: %s", frame)
-        
-        try:
-            await self.coordinator.async_send_message(frame)
-            self._attr_is_on = False
-            self.async_write_ha_state()
-        except Exception as e:
-            _LOGGER.error("Failed to turn off light %s: %s", self.name, e)
-            raise
+    async def async_request_initial_state(self) -> None:
+        cmd = (
+            OWNLightingCommand.get_brightness(self._where)
+            if self._dimmable
+            else OWNLightingCommand.status(self._where)
+        )
+        await self._coordinator.send_status_request(cmd)
+
+    async def async_turn_on(self, **kwargs) -> None:
+        if ATTR_FLASH in kwargs and LightEntityFeature.FLASH in self._attr_supported_features:
+            freq = 0.5 if kwargs[ATTR_FLASH] == FLASH_SHORT else 1.5
+            return await self._coordinator.send(OWNLightingCommand.flash(self._where, freq))
+        if (ATTR_BRIGHTNESS in kwargs and ColorMode.BRIGHTNESS in self._attr_supported_color_modes) or (
+            ATTR_TRANSITION in kwargs and LightEntityFeature.TRANSITION in self._attr_supported_features
+        ):
+            pct = _8b_to_pct(kwargs[ATTR_BRIGHTNESS]) if ATTR_BRIGHTNESS in kwargs else 30
+            tr = int(kwargs[ATTR_TRANSITION]) if ATTR_TRANSITION in kwargs else 0
+            if pct == 0:
+                return await self.async_turn_off(**kwargs)
+            await self._coordinator.send(OWNLightingCommand.set_brightness(self._where, pct, tr))
+        else:
+            tr = int(kwargs[ATTR_TRANSITION]) if ATTR_TRANSITION in kwargs else None
+            await self._coordinator.send(OWNLightingCommand.switch_on(self._where, tr))
+        if self._dimmable:
+            await self.async_request_initial_state()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        tr = int(kwargs[ATTR_TRANSITION]) if ATTR_TRANSITION in kwargs else None
+        await self._coordinator.send(OWNLightingCommand.switch_off(self._where, tr))
+
+    def handle_event(self, message: OWNLightingEvent) -> None:
+        self._attr_is_on = message.is_on
+        if self._dimmable and message.brightness is not None:
+            self._attr_brightness = _pct_to_8b(message.brightness)
+        self.async_write_ha_state()
