@@ -1,31 +1,51 @@
 sync_time:
-  name: Sincronizza orologio
-  description: Sincronizza l'orologio del gateway MyHOME con l'ora di Home Assistant.
+  name: Synchronize time
+  description: Imposta l'orario del gateway sull'orario di Home Assistant.
   fields:
-    gateway_mac:
-      name: MAC Gateway
-      description: Indirizzo MAC del gateway (es. 00:03:50:86:6B:6C)
-      required: true
+    gateway:
+      name: Gateway
+      description: MAC del gateway (es. 00:03:50:86:6B:6C).
+      example: "00:03:50:86:6B:6C"
       selector:
         text:
 
 send_message:
-  name: Invia messaggio OpenWebNet
-  description: Invia un frame OpenWebNet raw al gateway specificato.
+  name: Send message
+  description: Invia un frame OpenWebNet arbitrario (ma valido) al gateway.
   fields:
-    gateway_mac:
-      name: MAC Gateway
-      description: Indirizzo MAC del gateway (es. 00:03:50:86:6B:6C)
-      required: true
+    gateway:
+      name: Gateway
       selector:
         text:
     message:
-      name: Messaggio
-      description: Frame OpenWebNet da inviare (es. *1*1*21##)
-      required: true
+      name: Message
+      example: "*1*0*0##"
       selector:
         text:
 
-migrate_yaml:
-  name: Migra da YAML
-  description: Importa tutti i dispositivi dal vecchio file myhome.yaml come subentries. Eseguire una sola volta dopo aver aggiunto i gateway via UI.
+import_yaml:
+  name: Import YAML
+  description: Crea le subentry (dispositivi) leggendo un file myhome.yaml per i mac già configurati.
+  fields:
+    path:
+      name: Path
+      example: "/config/myhome.yaml"
+      selector:
+        text:
+
+start_sending_instant_power:
+  name: Start sending instant power
+  description: Richiede aggiornamenti periodici di potenza istantanea per i sensori selezionati.
+  target:
+    entity:
+      integration: myhome
+      domain: sensor
+  fields:
+    duration:
+      name: Duration
+      description: Minuti (1-255).
+      default: 65
+      selector:
+        number:
+          min: 1
+          max: 255
