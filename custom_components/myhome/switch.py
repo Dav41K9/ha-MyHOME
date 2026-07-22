@@ -1,83 +1,51 @@
-"""Switch platform for BTicino MyHOME."""
-
+"""Switches / plugs (WHO 1)."""
 from __future__ import annotations
 
-import logging
-from typing import Any
-
+from OWNd.message import OWNLightingCommand, OWNLightingEvent
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    CONF_DEVICE_CLASS,
-    SUBENTRY_SWITCH,
-    WHO_LIGHTING,
-)
-from .coordinator import MyHOMEGatewayCoordinator
+from .const import CONF_DEVICE_CLASS, CONF_MANUFACTURER, CONF_MODEL, CONF_NAME, CONF_WHERE, SUBENTRY_SWITCH
 from .entity import MyHOMEEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up MyHOME switches from config entry subentries."""
-    coordinator: MyHOMEGatewayCoordinator = entry.runtime_data
-
-    entities = []
-    for subentry_id, subentry in entry.subentries.items():
-        if subentry.subentry_type == SUBENTRY_SWITCH:
-            entities.append(
-                MyHOMESwitch(coordinator, entry, subentry_id, subentry.data)
-            )
-
-    async_add_entities(entities)
+    coord = entry.runtime_data
+    async_add_entities(
+        MyHOMESwitch(coord, sub.subentry_id, sub.data)
+        for sub in entry.subentries.values()
+        if sub.subentry_type == SUBENTRY_SWITCH
+    )
 
 
 class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
-    """Representation of a MyHOME switch."""
-
-    def __init__(self, coordinator, entry, subentry_id, data) -> None:
-        super().__init__(coordinator, entry, subentry_id, data)
-        self._attr_is_on = False
-        dc = str(data.get(CONF_DEVICE_CLASS, "outlet"))
-        if dc == "outlet":
-            self._attr_device_class = SwitchDeviceClass.OUTLET
-        else:
-            self._attr_device_class = SwitchDeviceClass.SWITCH
-
-    def _get_who(self) -> int:
-        return WHO_LIGHTING
-
-    async def _async_request_initial_state(self) -> None:
-        message = await self._coordinator.async_request_state(
-            WHO_LIGHTING, self._where
+    def __init__(self, coordinator, subentry_id: str, data: dict) -> None:
+        super().__init__(
+            coordinator,
+            subentry_id,
+            who=1,
+            where=data[CONF_WHERE],
+            name=data[CONF_NAME],
+            manufacturer=data.get(CONF_MANUFACTURER, ""),
+            model=data.get(CONF_MODEL, ""),
         )
-        if message:
-            what = str(getattr(message, "what", ""))
-            self._attr_is_on = what == "1"
+        dc = data.get(CONF_DEVICE_CLASS, "outlet")
+        self._attr_device_class = SwitchDeviceClass.OUTLET if dc == "outlet" else SwitchDeviceClass.SWITCH
+        self._attr_is_on = None
 
-    @callback
-    def _handle_event(self, message) -> None:
-        what = str(getattr(message, "what", ""))
-        self._attr_is_on = what == "1"
-        self.async_write_ha_state()
+    async def async_request_initial_state(self) -> None:
+        await self._coordinator.send_status_request(OWNLightingCommand.status(self._where))
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        await self._coordinator.async_send_message(
-            f"*1*1*{self._where}##"
-        )
-        self._attr_is_on = True
-        self.async_write_ha_state()
+    async def async_turn_on(self, **_) -> None:
+        await self._coordinator.send(OWNLightingCommand.switch_on(self._where))
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        await self._coordinator.async_send_message(
-            f"*1*0*{self._where}##"
-        )
-        self._attr_is_on = False
+    async def async_turn_off(self, **_) -> None:
+        await self._coordinator.send(OWNLightingCommand.switch_off(self._where))
+
+    def handle_event(self, message: OWNLightingEvent) -> None:
+        self._attr_is_on = message.is_on
         self.async_write_ha_state()
