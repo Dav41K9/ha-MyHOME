@@ -17,7 +17,7 @@ MyHOME Server / MH200N / F452V / F453V e compatibili.
   *Impostazioni → Dispositivi e servizi*
 - 📦 **Config Subentries** — ogni dispositivo è un sotto-elemento del gateway,
   modificabile singolarmente
-- 🔄 **Migrazione automatica** dal vecchio file `myhome.yaml` (v1.x → v2.0)
+- 🔄 **Migrazione automatica** dal vecchio file `myhome.yaml` (v1.x → v2.x)
 - 🩺 **Diagnostics** — esporta lo stato dell'integrazione per il debug
 
 ### Piattaforme supportate
@@ -55,7 +55,7 @@ MyHOME Server / MH200N / F452V / F453V e compatibili.
 1. Apri **HACS → Integrazioni → ⋮ → Repository personalizzati**
 2. Aggiungi l'URL del fork:
    ```
-   https://github.com/<TUO-USERNAME>/MyHOME
+   https://github.com/Dav41K9/ha-MyHOME
    ```
 3. Cerca **"BTicino MyHOME"** e installa
 4. Riavvia Home Assistant
@@ -79,10 +79,10 @@ MyHOME Server / MH200N / F452V / F453V e compatibili.
    | Campo | Esempio |
    |---|---|
    | Nome gateway | `myhomeserver1` |
-   | Indirizzo IP | `192.168.40.14` |
+   | Indirizzo IP | `192.168.1.50` |
    | Porta | `20000` |
    | Password | `12345` |
-   | MAC | `00:03:50:86:6B:6C` |
+   | MAC | `00:03:50:00:00:00` |
 
 4. Ripeti per ogni gateway (es. un secondo appartamento)
 
@@ -103,7 +103,7 @@ MyHOME Server / MH200N / F452V / F453V e compatibili.
 Se hai già un file `/config/myhome.yaml` dalla versione precedente:
 
 1. Installa la v2.0 e aggiungi i gateway via UI (punto 1)
-2. Vai in **Strumenti per sviluppatori → Servizi**
+2. Vai in **Strumenti per sviluppatori → Azioni**
 3. Esegui il servizio **`myhome.migrate_yaml`**
 4. Tutti i dispositivi vengono importati automaticamente come subentries
 5. Verifica in **Impostazioni → MyHOME → Config entry → Sotto-elementi**
@@ -124,7 +124,7 @@ Se hai già un file `/config/myhome.yaml` dalla versione precedente:
 ```yaml
 service: myhome.send_message
 data:
-  gateway_mac: "00:03:50:86:6B:6C"
+  gateway_mac: "00:03:50:00:00:00"
   message: "*1*1*21##"
 ```
 
@@ -173,7 +173,6 @@ custom_components/myhome/
 ├── climate.py           # Termostati / zone
 ├── sensor.py            # Sensori di potenza
 ├── binary_sensor.py     # Sensori binari
-├── button.py            # Button con frame personalizzato
 ├── services.py          # Servizi (sync_time, send_message, migrate_yaml)
 ├── services.yaml        # Descrizioni servizi per la UI
 ├── diagnostics.py       # Export diagnostico
@@ -181,6 +180,7 @@ custom_components/myhome/
 ├── strings.json         # Traduzioni (fallback)
 └── translations/
     └── it.json          # Traduzioni italiane
+    └── en.json          # Traduzioni inglesi
 ```
 
 ---
@@ -193,7 +193,7 @@ custom_components/myhome/
 - Verifica la password OpenWebNet (default `12345`)
 - Assicurati che il gateway sia raggiungibile:
   ```bash
-  ping 192.168.40.14
+  ping 192.168.1.50
   ```
 - L'integrazione riprova automaticamente ogni 10 secondi
 
@@ -202,12 +202,6 @@ custom_components/myhome/
 - Verifica il campo **Where** nel subentry
 - Controlla i log: **Strumenti per sviluppatori → Log** → filtra `myhome`
 - Usa il servizio `myhome.send_message` per testare il frame manualmente
-
-### I log mostrano errori di altre integrazioni
-
-Gli errori `proxmoxve`, `shelly`, `myskoda`, `opnsense`, `sonoff`,
-`electrolux_status`, `petwalk`, `ksenia_lares`, `smartthings_find` presenti
-nei log **non** sono correlati a questa integrazione.
 
 ---
 
