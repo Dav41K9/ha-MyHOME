@@ -4,8 +4,8 @@ sync_time:
   fields:
     gateway:
       name: Gateway
-      description: MAC del gateway (es. 00:03:50:86:6B:6C).
-      example: "00:03:50:86:6B:6C"
+      description: MAC del gateway (es. 00:03:50:00:00:00).
+      example: "00:03:50:00:00:00"
       selector:
         text:
 
@@ -25,7 +25,7 @@ send_message:
 
 import_yaml:
   name: Import YAML
-  description: Crea le subentry (dispositivi) leggendo un file myhome.yaml per i mac già configurati.
+  description: Crea i dispositivi leggendo un file myhome.yaml per i MAC già configurati (li aggiunge nella sezione Configura).
   fields:
     path:
       name: Path
