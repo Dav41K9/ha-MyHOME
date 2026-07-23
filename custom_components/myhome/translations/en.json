@@ -1,118 +1,102 @@
 {
-  "title": "MyHome",
   "config": {
-    "flow_title": "MyHome {name} Gateway ({host})",
     "step": {
       "user": {
-        "title": "Pick your \"MyHome\" gateway",
+        "title": "BTicino MyHOME gateway",
+        "description": "Enter the connection details of the webserver (MyHomeServer1 / F454 / MH202).",
         "data": {
-          "host": "IP address"
-        }
-      },
-      "port": {
-        "title": "Gateway's service port",
-        "description": "Provide the port used for OpenWebNet communication with the {name} gateway {host}",
-        "data": {
-          "port": "Port"
-        }
-      },
-      "password": {
-        "title": "Gateway's password",
-        "description": "Provide the OpenWebNet password for the {name} gateway {host}",
-        "data": {
-          "password": "Password"
-        }
-      },
-      "custom": {
-        "title": "Manual gateway entry",
-        "description": "Fill out the information for your gateway",
-        "data": {
-          "address": "IP address",
+          "name": "Name",
+          "host": "IP address",
           "port": "Port",
-          "serialNumber": "MAC address",
-          "modelName": "Device type"
+          "password": "OpenWebNet password",
+          "mac": "MAC address"
         }
       }
     },
     "error": {
-      "invalid_port": "Invalid port",
-      "invalid_ip": "Invalid IP address",
-      "invalid_mac": "Invalid MAC address",
-      "invalid_password": "Invalid password",
-      "password_retry": "Gateway refusing password negotiation, wait 60s before retrying.",
-      "password_error": "Invalid password"
+      "cannot_connect": "Cannot connect to the gateway.",
+      "invalid_auth": "Invalid or missing password.",
+      "invalid_mac": "Invalid MAC address."
     },
     "abort": {
-      "discover_timeout": "Unable to discover MyHome gateways",
-      "no_gateways": "No MyHome gateways discovered",
-      "all_configured": "All MyHome gateways are already configured",
-      "unknown": "An unknown error occured",
-      "cannot_connect": "Cannot connect to the gateway",
-      "already_configured": "This gateway is already configured",
-      "already_in_progress": "The configuration of this gateway is already in progress",
-      "reauth_successful": "Password change successful"
+      "already_configured": "This gateway is already configured."
     }
   },
   "options": {
     "step": {
-      "user": {
-        "title": "MyHome options",
-        "description": "Advanced system settings",
-        "data": {
-          "address": "IP address",
-          "password": "Password",
-          "config_file_path": "Configuration file path",
-          "command_worker_count": "Number of concurrent command sessions",
-          "generate_events": "Generate events in Home Assistant for each message received"
+      "init": {
+        "menu_options": {
+          "add": "Add device",
+          "edit": "Edit device",
+          "remove": "Remove device"
         }
+      },
+      "add": {
+        "title": "Add device",
+        "description": "Choose the type of device to add.",
+        "data": { "type": "Device type" }
+      },
+      "add_fields": {
+        "title": "Device details",
+        "description": "Fill in the device parameters.",
+        "data": {
+          "name": "Name",
+          "where": "Address (A/PL or zone)",
+          "dimmable": "Dimmable",
+          "device_class": "Type",
+          "advanced": "Advanced positioning",
+          "heat": "Heating",
+          "cool": "Cooling",
+          "standalone": "Standalone",
+          "who": "Protocol (25=contact, 1=motion, 9=aux)",
+          "inverted": "Invert state",
+          "manufacturer": "Manufacturer",
+          "model": "Model"
+        }
+      },
+      "edit": {
+        "title": "Edit device",
+        "description": "Select the device to edit.",
+        "data": { "device": "Device" }
+      },
+      "edit_fields": {
+        "title": "Edit device",
+        "description": "Change the device parameters.",
+        "data": {
+          "name": "Name",
+          "where": "Address (A/PL or zone)",
+          "dimmable": "Dimmable",
+          "device_class": "Type",
+          "advanced": "Advanced positioning",
+          "heat": "Heating",
+          "cool": "Cooling",
+          "standalone": "Standalone",
+          "who": "Protocol (25=contact, 1=motion, 9=aux)",
+          "inverted": "Invert state",
+          "manufacturer": "Manufacturer",
+          "model": "Model"
+        }
+      },
+      "remove": {
+        "title": "Remove device",
+        "description": "Select the device to remove. Its entity, history and linked automations will be removed too.",
+        "data": { "device": "Device" }
       }
-    },
-    "error": {
-      "invalid_ip": "Invalid IP address",
-      "invalid_worker_count": "Workers must be between 1 and 10",
-      "invalid_config_path": "Configuration file does not exist at this path",
-      "invalid_password": "Invalid password",
-      "password_error": "Invalid password"
     }
   },
-  "services": {
-    "sync_time": {
-      "name": "Syncronize time",
-      "description": "Syncronize gateway's time to HA local time.",
-      "fields": {
-        "gateway": {
-          "name": "Gateway",
-          "description": "The gateway's MAC address, as present in the config."
-        }
+  "selector": {
+    "device_type": {
+      "options": {
+        "light": "Light",
+        "switch": "Switch / Plug",
+        "cover": "Shutter / Blind",
+        "climate": "Thermostat / Zone",
+        "sensor": "Sensor",
+        "binary_sensor": "Binary sensor"
       }
     },
-    "send_message": {
-      "name": "Send message",
-      "description": "Send an arbitrary (but valid) OpenWebNet message to the gateway.",
-      "fields": {
-        "gateway": {
-          "name": "Gateway",
-          "description": "The gateway's MAC address, as present in the config."
-        },
-        "message": {
-          "name": "Message",
-          "description": "Valid OpenWebNet message."
-        }
-      }
-    },
-    "start_sending_instant_power": {
-      "name": "Start sending instant power",
-      "description": "Get automatic instant power draw updates for a sensor.",
-      "fields": {
-        "entity_id": {
-          "name": "Entity",
-          "description": "Name(s) of entities that will start sending instant power information."
-        },
-        "duration": {
-          "name": "Duration",
-          "description": "For how long the instant power information will be sent."
-        }
-      }
-    }
+    "switch_class": { "options": { "outlet": "Plug", "switch": "Switch" } },
+    "sensor_class": { "options": { "power": "Power", "energy": "Energy", "temperature": "Temperature", "illuminance": "Illuminance" } },
+    "binary_class": { "options": { "opening": "Opening", "door": "Door", "window": "Window", "motion": "Motion", "smoke": "Smoke", "gas": "Gas", "moisture": "Moisture", "problem": "Problem", "safety": "Safety" } }
   }
 }
