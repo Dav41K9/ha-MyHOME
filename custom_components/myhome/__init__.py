@@ -79,7 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MyHOMEConfigEntry) -> bo
             continue
         dev_reg.async_get_or_create(
             config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, f"{mac}-{dev_id}"},
+            identifiers={(DOMAIN, f"{mac}-{dev_id}")},
             name=dev.get(CONF_NAME, dev_id),
             manufacturer=dev.get(CONF_MANUFACTURER, MANUFACTURER_DEFAULT),
             model=dev.get(CONF_MODEL),
