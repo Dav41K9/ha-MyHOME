@@ -32,6 +32,7 @@ from .const import (
     CONF_MODEL,
     CONF_NAME,
     CONF_WHERE,
+    OPTIONS_DEVICES,
     SERVICE_START_INSTANT_POWER,
     SUBENTRY_SENSOR,
 )
@@ -50,19 +51,19 @@ async def async_setup_entry(
 ) -> None:
     coord = entry.runtime_data
     entities, has_power = [], False
-    for sub in entry.subentries.values():
-        if sub.subentry_type != SUBENTRY_SENSOR:
+    for dev in entry.options.get(OPTIONS_DEVICES, []):
+        if dev.get("type") != SUBENTRY_SENSOR:
             continue
-        dc = _DC.get(sub.data.get(CONF_DEVICE_CLASS, "power"), SensorDeviceClass.POWER)
+        dc = _DC.get(dev.get(CONF_DEVICE_CLASS, "power"), SensorDeviceClass.POWER)
         if dc == SensorDeviceClass.POWER:
-            entities.append(MyHOMEPowerSensor(coord, sub.subentry_id, sub.data))
+            entities.append(MyHOMEPowerSensor(coord, dev["id"], dev))
             has_power = True
         elif dc == SensorDeviceClass.ENERGY:
-            entities.append(MyHOMEEnergySensor(coord, sub.subentry_id, sub.data))
+            entities.append(MyHOMEEnergySensor(coord, dev["id"], dev))
         elif dc == SensorDeviceClass.TEMPERATURE:
-            entities.append(MyHOMETemperatureSensor(coord, sub.subentry_id, sub.data))
+            entities.append(MyHOMETemperatureSensor(coord, dev["id"], dev))
         else:
-            entities.append(MyHOMEIlluminanceSensor(coord, sub.subentry_id, sub.data))
+            entities.append(MyHOMEIlluminanceSensor(coord, dev["id"], dev))
     async_add_entities(entities)
     if has_power:
         platform = entity_platform.async_get_current_platform()
@@ -74,8 +75,8 @@ async def async_setup_entry(
 
 
 class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
-    def __init__(self, coordinator, subentry_id, data):
-        super().__init__(coordinator, subentry_id, 18, data[CONF_WHERE], data[CONF_NAME],
+    def __init__(self, coordinator, device_id, data):
+        super().__init__(coordinator, device_id, 18, data[CONF_WHERE], data[CONF_NAME],
                          data.get(CONF_MANUFACTURER, ""), data.get(CONF_MODEL, ""))
         self._attr_device_class = SensorDeviceClass.POWER
         self._attr_native_unit_of_measurement = UnitOfPower.WATT
@@ -97,8 +98,8 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
 
 
 class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
-    def __init__(self, coordinator, subentry_id, data):
-        super().__init__(coordinator, subentry_id, 18, data[CONF_WHERE], data[CONF_NAME],
+    def __init__(self, coordinator, device_id, data):
+        super().__init__(coordinator, device_id, 18, data[CONF_WHERE], data[CONF_NAME],
                          data.get(CONF_MANUFACTURER, ""), data.get(CONF_MODEL, ""))
         self._attr_device_class = SensorDeviceClass.ENERGY
         self._attr_native_unit_of_measurement = UnitOfEnergy.WATT_HOUR
@@ -115,8 +116,8 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
 
 
 class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
-    def __init__(self, coordinator, subentry_id, data):
-        super().__init__(coordinator, subentry_id, 4, data[CONF_WHERE], data[CONF_NAME],
+    def __init__(self, coordinator, device_id, data):
+        super().__init__(coordinator, device_id, 4, data[CONF_WHERE], data[CONF_NAME],
                          data.get(CONF_MANUFACTURER, ""), data.get(CONF_MODEL, ""))
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -136,8 +137,8 @@ class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
 
 
 class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
-    def __init__(self, coordinator, subentry_id, data):
-        super().__init__(coordinator, subentry_id, 1, data[CONF_WHERE], data[CONF_NAME],
+    def __init__(self, coordinator, device_id, data):
+        super().__init__(coordinator, device_id, 1, data[CONF_WHERE], data[CONF_NAME],
                          data.get(CONF_MANUFACTURER, ""), data.get(CONF_MODEL, ""))
         self._attr_device_class = SensorDeviceClass.ILLUMINANCE
         self._attr_native_unit_of_measurement = LIGHT_LUX
