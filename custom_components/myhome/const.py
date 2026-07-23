@@ -14,7 +14,7 @@ CONF_PASSWORD = "password"
 CONF_MAC = "mac"
 CONF_NAME = "name"
 
-# --- subentry (device) keys ---
+# --- device keys (stored inside entry.options[OPTIONS_DEVICES]) ---
 CONF_WHERE = "where"
 CONF_DIMMABLE = "dimmable"
 CONF_ADVANCED = "advanced"
@@ -27,13 +27,25 @@ CONF_MODEL = "model"
 CONF_INVERTED = "inverted"
 CONF_WHO = "who"
 
-# --- subentry types (== platform names) ---
+# --- options ---
+OPTIONS_DEVICES = "devices"  # list[dict] of configured devices
+
+# --- device types (== platform names) ---
 SUBENTRY_LIGHT = "light"
 SUBENTRY_SWITCH = "switch"
 SUBENTRY_COVER = "cover"
 SUBENTRY_CLIMATE = "climate"
 SUBENTRY_SENSOR = "sensor"
 SUBENTRY_BINARY_SENSOR = "binary_sensor"
+
+DEVICE_TYPES = [
+    SUBENTRY_LIGHT,
+    SUBENTRY_SWITCH,
+    SUBENTRY_COVER,
+    SUBENTRY_CLIMATE,
+    SUBENTRY_SENSOR,
+    SUBENTRY_BINARY_SENSOR,
+]
 
 PLATFORMS = [
     Platform.LIGHT,
@@ -55,7 +67,6 @@ SERVICE_SYNC_TIME = "sync_time"
 SERVICE_SEND_MESSAGE = "send_message"
 SERVICE_IMPORT_YAML = "import_yaml"
 SERVICE_START_INSTANT_POWER = "start_sending_instant_power"
-
 OLD_YAML_PATH = "/config/myhome.yaml"
 
 LOGGER = logging.getLogger("custom_components.myhome")
