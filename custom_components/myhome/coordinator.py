@@ -11,7 +11,6 @@ from OWNd.connection import (
     OWNCommandSession,
 )
 from OWNd.message import OWNMessage
-
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -25,6 +24,10 @@ from .const import (
 )
 
 WORKER_COUNT = 1
+# Small pause between consecutive frames on the command session: it spreads the
+# burst of status requests fired at startup so the OpenWebNet bus / gateway does
+# not get saturated (reduces "Could not send ... Retrying / No more retries").
+SEND_SPACING = 0.05
 
 
 class MyHOMEGatewayCoordinator:
@@ -36,7 +39,6 @@ class MyHOMEGatewayCoordinator:
         self.mac: str = data[CONF_MAC]
         self.host: str = data[CONF_HOST]
         self.port: int = data[CONF_PORT]
-
         build_info = {
             "address": data[CONF_HOST],
             "port": data[CONF_PORT],
@@ -53,7 +55,6 @@ class MyHOMEGatewayCoordinator:
             "UDN": None,
         }
         self.gateway = OWNGateway(build_info)
-
         self.hub_device_id: str | None = None
         self.is_connected = False
         self._handlers: dict[str, list] = {}
@@ -144,10 +145,15 @@ class MyHOMEGatewayCoordinator:
             if task is None:  # sentinel
                 self._send_buffer.task_done()
                 break
-            await session.send(
-                message=task["message"],
-                is_status_request=task["is_status_request"],
-            )
+            try:
+                await session.send(
+                    message=task["message"],
+                    is_status_request=task["is_status_request"],
+                )
+            except Exception:  # noqa: BLE001
+                LOGGER.debug("%s send failed for one frame (transient)", self.log_id)
+            # spread frames to avoid saturating the bus / command session
+            await asyncio.sleep(SEND_SPACING)
             self._send_buffer.task_done()
 
     # ---- public send API ----
