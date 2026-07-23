@@ -32,6 +32,7 @@ from .const import (
     CONF_NAME,
     CONF_STANDALONE,
     CONF_WHERE,
+    OPTIONS_DEVICES,
     SUBENTRY_CLIMATE,
 )
 from .entity import MyHOMEEntity
@@ -42,17 +43,17 @@ async def async_setup_entry(
 ) -> None:
     coord = entry.runtime_data
     async_add_entities(
-        MyHOMEClimate(coord, sub.subentry_id, sub.data)
-        for sub in entry.subentries.values()
-        if sub.subentry_type == SUBENTRY_CLIMATE
+        MyHOMEClimate(coord, dev["id"], dev)
+        for dev in entry.options.get(OPTIONS_DEVICES, [])
+        if dev.get("type") == SUBENTRY_CLIMATE
     )
 
 
 class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
-    def __init__(self, coordinator, subentry_id: str, data: dict) -> None:
+    def __init__(self, coordinator, device_id: str, data: dict) -> None:
         super().__init__(
             coordinator,
-            subentry_id,
+            device_id,
             who=4,
             where=data[CONF_WHERE],  # zona
             name=data[CONF_NAME],
@@ -62,7 +63,6 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._standalone = bool(data.get(CONF_STANDALONE, True))
         self._heating = bool(data.get(CONF_HEAT, True))
         self._cooling = bool(data.get(CONF_COOL, False))
-
         self._attr_temperature_unit = UnitOfTemperature.CELSIUS
         self._attr_precision = 0.1
         self._attr_target_temperature_step = 0.5
@@ -77,7 +77,6 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
             self._attr_hvac_modes.append(HVACMode.HEAT)
         if self._cooling:
             self._attr_hvac_modes.append(HVACMode.COOL)
-
         self._target_temperature = None
         self._local_offset = 0
         self._local_target_temperature = None
