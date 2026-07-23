@@ -2,120 +2,101 @@
   "config": {
     "step": {
       "user": {
-        "title": "Gateway BTicino MyHOME",
-        "description": "Inserisci i dati di connessione del webserver (MyHomeServer1 / F454 / MH202).",
+        "title": "BTicino MyHOME gateway",
+        "description": "Enter the connection details of the webserver (MyHomeServer1 / F454 / MH202).",
         "data": {
-          "name": "Nome",
-          "host": "Indirizzo IP",
-          "port": "Porta",
-          "password": "Password OpenWebNet",
+          "name": "Name",
+          "host": "IP address",
+          "port": "Port",
+          "password": "OpenWebNet password",
           "mac": "MAC address"
         }
       }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi al gateway.",
-      "invalid_auth": "Password non valida o richiesta.",
-      "invalid_mac": "MAC address non valido."
+      "cannot_connect": "Cannot connect to the gateway.",
+      "invalid_auth": "Invalid or missing password.",
+      "invalid_mac": "Invalid MAC address."
     },
     "abort": {
-      "already_configured": "Questo gateway è già configurato."
+      "already_configured": "This gateway is already configured."
     }
   },
-  "config_subentries": {
-    "light": {
-      "title": "Luce",
-      "step": {
-        "user": {
-          "title": "Nuova luce",
-          "data": {
-            "name": "Nome",
-            "where": "Indirizzo (A/PL, es. 23 o 0115)",
-            "dimmable": "Dimmerabile",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "add": "Add device",
+          "edit": "Edit device",
+          "remove": "Remove device"
         }
-      }
-    },
-    "switch": {
-      "title": "Switch / Presa",
-      "step": {
-        "user": {
-          "title": "Nuovo switch",
-          "data": {
-            "name": "Nome",
-            "where": "Indirizzo (A/PL)",
-            "device_class": "Tipo",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
+      },
+      "add": {
+        "title": "Add device",
+        "description": "Choose the type of device to add.",
+        "data": { "type": "Device type" }
+      },
+      "add_fields": {
+        "title": "Device details",
+        "description": "Fill in the device parameters.",
+        "data": {
+          "name": "Name",
+          "where": "Address (A/PL or zone)",
+          "dimmable": "Dimmable",
+          "device_class": "Type",
+          "advanced": "Advanced positioning",
+          "heat": "Heating",
+          "cool": "Cooling",
+          "standalone": "Standalone",
+          "who": "Protocol (25=contact, 1=motion, 9=aux)",
+          "inverted": "Invert state",
+          "manufacturer": "Manufacturer",
+          "model": "Model"
         }
-      }
-    },
-    "cover": {
-      "title": "Tapparella / Tenda",
-      "step": {
-        "user": {
-          "title": "Nuova tapparella",
-          "data": {
-            "name": "Nome",
-            "where": "Indirizzo (A/PL)",
-            "advanced": "Posizionamento avanzato",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
+      },
+      "edit": {
+        "title": "Edit device",
+        "description": "Select the device to edit.",
+        "data": { "device": "Device" }
+      },
+      "edit_fields": {
+        "title": "Edit device",
+        "description": "Change the device parameters.",
+        "data": {
+          "name": "Name",
+          "where": "Address (A/PL or zone)",
+          "dimmable": "Dimmable",
+          "device_class": "Type",
+          "advanced": "Advanced positioning",
+          "heat": "Heating",
+          "cool": "Cooling",
+          "standalone": "Standalone",
+          "who": "Protocol (25=contact, 1=motion, 9=aux)",
+          "inverted": "Invert state",
+          "manufacturer": "Manufacturer",
+          "model": "Model"
         }
-      }
-    },
-    "climate": {
-      "title": "Zona termoregolazione",
-      "step": {
-        "user": {
-          "title": "Nuova zona",
-          "data": {
-            "name": "Nome",
-            "where": "Zona (es. 1)",
-            "heat": "Riscaldamento",
-            "cool": "Raffrescamento",
-            "standalone": "Standalone",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
-        }
-      }
-    },
-    "sensor": {
-      "title": "Sensore",
-      "step": {
-        "user": {
-          "title": "Nuovo sensore",
-          "data": {
-            "name": "Nome",
-            "where": "Indirizzo sensore",
-            "device_class": "Classe",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
-        }
-      }
-    },
-    "binary_sensor": {
-      "title": "Sensore binario",
-      "step": {
-        "user": {
-          "title": "Nuovo sensore binario",
-          "data": {
-            "name": "Nome",
-            "where": "Indirizzo",
-            "who": "Protocollo (25=contatto, 1=motion, 9=aux)",
-            "device_class": "Classe",
-            "inverted": "Inverti stato",
-            "manufacturer": "Produttore",
-            "model": "Modello"
-          }
-        }
+      },
+      "remove": {
+        "title": "Remove device",
+        "description": "Select the device to remove. Its entity, history and linked automations will be removed too.",
+        "data": { "device": "Device" }
       }
     }
+  },
+  "selector": {
+    "device_type": {
+      "options": {
+        "light": "Light",
+        "switch": "Switch / Plug",
+        "cover": "Shutter / Blind",
+        "climate": "Thermostat / Zone",
+        "sensor": "Sensor",
+        "binary_sensor": "Binary sensor"
+      }
+    },
+    "switch_class": { "options": { "outlet": "Plug", "switch": "Switch" } },
+    "sensor_class": { "options": { "power": "Power", "energy": "Energy", "temperature": "Temperature", "illuminance": "Illuminance" } },
+    "binary_class": { "options": { "opening": "Opening", "door": "Door", "window": "Window", "motion": "Motion", "smoke": "Smoke", "gas": "Gas", "moisture": "Moisture", "problem": "Problem", "safety": "Safety" } }
   }
 }
