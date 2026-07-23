@@ -1,12 +1,11 @@
 {
   "name": "MyHome",
-  "zip_release": true,
-  "filename": "myhome.zip",
-  "country": [
+  "render_readme": true,
+    "country": [
     "GB",
     "FR",
     "NL",
     "IT"
   ],
-  "homeassistant": "2024.3.0"
+  "homeassistant": "2026.7.0"
 }
