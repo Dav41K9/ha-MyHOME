@@ -1,8 +1,9 @@
-"""Config + subentry flows."""
+"""Config flow (hub) + options flow (manage devices)."""
 from __future__ import annotations
 
 import re
 from typing import Any
+from uuid import uuid4
 
 import voluptuous as vol
 
@@ -11,7 +12,7 @@ from homeassistant.components import ssdp
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlowResult,
-    ConfigSubentryFlow,
+    OptionsFlow,
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
@@ -47,6 +48,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     MANUFACTURER_DEFAULT,
+    OPTIONS_DEVICES,
     SUBENTRY_BINARY_SENSOR,
     SUBENTRY_CLIMATE,
     SUBENTRY_COVER,
@@ -56,6 +58,15 @@ from .const import (
 )
 
 _MAC_RE = re.compile(r"^[0-9a-fA-F]{12}$")
+
+_DEFAULT_MODEL = {
+    SUBENTRY_LIGHT: "BMSW1005",
+    SUBENTRY_SWITCH: "BMSW1005",
+    SUBENTRY_COVER: "F411/4",
+    SUBENTRY_CLIMATE: "F430R8",
+    SUBENTRY_SENSOR: "F520",
+    SUBENTRY_BINARY_SENSOR: "BMSW1005",
+}
 
 
 def _normalize_mac(mac: str) -> str:
@@ -80,27 +91,82 @@ def _build_gateway(host: str, port: int, password: str, mac: str, name: str) -> 
     )
 
 
+def _schema_for_type(dtype: str, defaults: dict | None = None) -> vol.Schema:
+    """Build the device form schema for a given type (add or edit)."""
+
+    def d(key: str, fallback: Any) -> Any:
+        return defaults.get(key, fallback) if defaults else fallback
+
+    man = vol.Optional(CONF_MANUFACTURER, default=d(CONF_MANUFACTURER, MANUFACTURER_DEFAULT)): TextSelector()
+    model = vol.Optional(CONF_MODEL, default=d(CONF_MODEL, _DEFAULT_MODEL.get(dtype, ""))): TextSelector()
+    name = vol.Required(CONF_NAME, default=d(CONF_NAME, "")): TextSelector()
+    where = vol.Required(CONF_WHERE, default=d(CONF_WHERE, "")): TextSelector()
+
+    if dtype == SUBENTRY_LIGHT:
+        return vol.Schema({
+            name, where,
+            vol.Optional(CONF_DIMMABLE, default=d(CONF_DIMMABLE, False)): BooleanSelector(),
+            man, model,
+        })
+    if dtype == SUBENTRY_SWITCH:
+        return vol.Schema({
+            name, where,
+            vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "outlet")): SelectSelector(
+                SelectSelectorConfig(options=["outlet", "switch"], translation_key="switch_class")
+            ),
+            man, model,
+        })
+    if dtype == SUBENTRY_COVER:
+        return vol.Schema({
+            name, where,
+            vol.Optional(CONF_ADVANCED, default=d(CONF_ADVANCED, True)): BooleanSelector(),
+            man, model,
+        })
+    if dtype == SUBENTRY_CLIMATE:
+        return vol.Schema({
+            name, where,
+            vol.Optional(CONF_HEAT, default=d(CONF_HEAT, True)): BooleanSelector(),
+            vol.Optional(CONF_COOL, default=d(CONF_COOL, False)): BooleanSelector(),
+            vol.Optional(CONF_STANDALONE, default=d(CONF_STANDALONE, True)): BooleanSelector(),
+            man, model,
+        })
+    if dtype == SUBENTRY_SENSOR:
+        return vol.Schema({
+            name, where,
+            vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "power")): SelectSelector(
+                SelectSelectorConfig(options=["power", "energy", "temperature", "illuminance"], translation_key="sensor_class")
+            ),
+            man, model,
+        })
+    # binary_sensor
+    return vol.Schema({
+        name, where,
+        vol.Optional(CONF_WHO, default=d(CONF_WHO, 25)): NumberSelector(
+            NumberSelectorConfig(min=1, max=255, mode="box")
+        ),
+        vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "opening")): SelectSelector(
+            SelectSelectorConfig(
+                options=["opening", "door", "window", "motion", "smoke", "gas", "moisture", "problem", "safety"],
+                translation_key="binary_class",
+            )
+        ),
+        vol.Optional(CONF_INVERTED, default=d(CONF_INVERTED, False)): BooleanSelector(),
+        man, model,
+    })
+
+
 class MyHOMEConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Hub setup flow."""
 
-    VERSION = 1
+    VERSION = 2  # bumped from 1: devices moved from subentries to entry.options
 
     def __init__(self) -> None:
         self._discovered: dict[str, Any] | None = None
 
-    @classmethod
+    @staticmethod
     @callback
-    def async_get_supported_subentry_types(
-        cls, config_entry: ConfigEntry
-    ) -> dict[str, type[ConfigSubentryFlow]]:
-        return {
-            SUBENTRY_LIGHT: LightSubentryFlow,
-            SUBENTRY_SWITCH: SwitchSubentryFlow,
-            SUBENTRY_COVER: CoverSubentryFlow,
-            SUBENTRY_CLIMATE: ClimateSubentryFlow,
-            SUBENTRY_SENSOR: SensorSubentryFlow,
-            SUBENTRY_BINARY_SENSOR: BinarySensorSubentryFlow,
-        }
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        return MyHOMEOptionsFlow()
 
     def _hub_schema(self) -> vol.Schema:
         d = self._discovered or {}
@@ -173,98 +239,108 @@ class MyHOMEConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_user()
 
 
-# ---------------------------------------------------------------- subentries
-class _BaseSubentryFlow(ConfigSubentryFlow):
-    SCHEMA: vol.Schema = vol.Schema({})
+class MyHOMEOptionsFlow(OptionsFlow):
+    """Manage devices (add / edit / remove) stored in entry.options."""
 
-    async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
+    def __init__(self) -> None:
+        self._dtype: str | None = None
+        self._edit_id: str | None = None
+
+    # ---- helpers ----
+    def _devices(self) -> list[dict]:
+        return list(self.config_entry.options.get(OPTIONS_DEVICES, []))
+
+    def _save(self, devices: list[dict]) -> ConfigFlowResult:
+        new_options = {**self.config_entry.options, OPTIONS_DEVICES: devices}
+        return self.async_create_entry(title="", data=new_options)
+
+    def _device_selector(self) -> vol.Schema:
+        options = [
+            {"value": dev.get("id", ""), "label": dev.get(CONF_NAME, dev.get("id", ""))}
+            for dev in self._devices()
+        ]
+        return vol.Schema(
+            {vol.Required("device"): SelectSelector(SelectSelectorConfig(options=options))}
+        )
+
+    # ---- menu ----
+    async def async_step_init(self, user_input: dict | None = None) -> ConfigFlowResult:
+        menu = ["add"]
+        if self._devices():
+            menu += ["edit", "remove"]
+        return self.async_show_menu(step_id="init", menu_options=menu)
+
+    # ---- add ----
+    async def async_step_add(self, user_input: dict | None = None) -> ConfigFlowResult:
         if user_input is not None:
-            return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
-        return self.async_show_form(step_id="user", data_schema=self.SCHEMA)
-
-
-def _opt_man_model(default_model: str) -> dict:
-    return {
-        vol.Optional(CONF_MANUFACTURER, default=MANUFACTURER_DEFAULT): TextSelector(),
-        vol.Optional(CONF_MODEL, default=default_model): TextSelector(),
-    }
-
-
-class LightSubentryFlow(_BaseSubentryFlow):
-    SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_NAME): TextSelector(),
-            vol.Required(CONF_WHERE): TextSelector(),
-            vol.Optional(CONF_DIMMABLE, default=False): BooleanSelector(),
-            **_opt_man_model("BMSW1005"),
-        }
-    )
-
-
-class SwitchSubentryFlow(_BaseSubentryFlow):
-    SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_NAME): TextSelector(),
-            vol.Required(CONF_WHERE): TextSelector(),
-            vol.Optional(CONF_DEVICE_CLASS, default="outlet"): SelectSelector(
-                SelectSelectorConfig(options=["outlet", "switch"])
+            self._dtype = user_input["type"]
+            return await self.async_step_add_fields()
+        return self.async_show_form(
+            step_id="add",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("type"): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SUBENTRY_LIGHT,
+                                SUBENTRY_SWITCH,
+                                SUBENTRY_COVER,
+                                SUBENTRY_CLIMATE,
+                                SUBENTRY_SENSOR,
+                                SUBENTRY_BINARY_SENSOR,
+                            ],
+                            translation_key="device_type",
+                        )
+                    )
+                }
             ),
-            **_opt_man_model("BMSW1005"),
-        }
-    )
+        )
 
+    async def async_step_add_fields(self, user_input: dict | None = None) -> ConfigFlowResult:
+        assert self._dtype is not None
+        if user_input is not None:
+            dev = {"id": uuid4().hex, "type": self._dtype}
+            dev.update(user_input)
+            devices = self._devices()
+            devices.append(dev)
+            return self._save(devices)
+        return self.async_show_form(
+            step_id="add_fields",
+            data_schema=_schema_for_type(self._dtype),
+        )
 
-class CoverSubentryFlow(_BaseSubentryFlow):
-    SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_NAME): TextSelector(),
-            vol.Required(CONF_WHERE): TextSelector(),
-            vol.Optional(CONF_ADVANCED, default=True): BooleanSelector(),
-            **_opt_man_model("F411/4"),
-        }
-    )
+    # ---- edit ----
+    async def async_step_edit(self, user_input: dict | None = None) -> ConfigFlowResult:
+        devices = self._devices()
+        if not devices:
+            return await self.async_step_init()
+        if user_input is not None:
+            self._edit_id = user_input["device"]
+            return await self.async_step_edit_fields()
+        return self.async_show_form(step_id="edit", data_schema=self._device_selector())
 
+    async def async_step_edit_fields(self, user_input: dict | None = None) -> ConfigFlowResult:
+        devices = self._devices()
+        current = next((d for d in devices if d.get("id") == self._edit_id), None)
+        if current is None:
+            return await self.async_step_init()
+        if user_input is not None:
+            new_dev = {"id": current["id"], "type": current.get("type")}
+            new_dev.update(user_input)
+            devices = [new_dev if d.get("id") == self._edit_id else d for d in devices]
+            return self._save(devices)
+        return self.async_show_form(
+            step_id="edit_fields",
+            data_schema=_schema_for_type(current.get("type", SUBENTRY_LIGHT), defaults=current),
+        )
 
-class ClimateSubentryFlow(_BaseSubentryFlow):
-    SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_NAME): TextSelector(),
-            vol.Required(CONF_WHERE): TextSelector(),
-            vol.Optional(CONF_HEAT, default=True): BooleanSelector(),
-            vol.Optional(CONF_COOL, default=False): BooleanSelector(),
-            vol.Optional(CONF_STANDALONE, default=True): BooleanSelector(),
-            **_opt_man_model("F430R8"),
-        }
-    )
-
-
-class SensorSubentryFlow(_BaseSubentryFlow):
-    SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_NAME): TextSelector(),
-            vol.Required(CONF_WHERE): TextSelector(),
-            vol.Optional(CONF_DEVICE_CLASS, default="power"): SelectSelector(
-                SelectSelectorConfig(options=["power", "energy", "temperature", "illuminance"])
-            ),
-            **_opt_man_model("F520"),
-        }
-    )
-
-
-class BinarySensorSubentryFlow(_BaseSubentryFlow):
-    SCHEMA = vol.Schema(
-        {
-            vol.Required(CONF_NAME): TextSelector(),
-            vol.Required(CONF_WHERE): TextSelector(),
-            vol.Optional(CONF_WHO, default=25): NumberSelector(
-                NumberSelectorConfig(min=1, max=255, mode="box")
-            ),
-            vol.Optional(CONF_DEVICE_CLASS, default="opening"): SelectSelector(
-                SelectSelectorConfig(
-                    options=["opening", "door", "window", "motion", "smoke", "gas", "moisture", "problem", "safety"]
-                )
-            ),
-            vol.Optional(CONF_INVERTED, default=False): BooleanSelector(),
-            **_opt_man_model("BMSW1005"),
-        }
-    )
+    # ---- remove ----
+    async def async_step_remove(self, user_input: dict | None = None) -> ConfigFlowResult:
+        devices = self._devices()
+        if not devices:
+            return await self.async_step_init()
+        if user_input is not None:
+            rid = user_input["device"]
+            devices = [d for d in devices if d.get("id") != rid]
+            return self._save(devices)
+        return self.async_show_form(step_id="remove", data_schema=self._device_selector())
