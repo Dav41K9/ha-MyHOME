@@ -22,12 +22,81 @@
       "already_configured": "Questo gateway è già configurato."
     }
   },
-  "config_subentries": {
-    "light": {"title": "Luce", "step": {"user": {"title": "Nuova luce", "data": {"name": "Nome", "where": "Indirizzo (A/PL, es. 23 o 0115)", "dimmable": "Dimmerabile", "manufacturer": "Produttore", "model": "Modello"}}}},
-    "switch": {"title": "Switch / Presa", "step": {"user": {"title": "Nuovo switch", "data": {"name": "Nome", "where": "Indirizzo (A/PL)", "device_class": "Tipo", "manufacturer": "Produttore", "model": "Modello"}}}},
-    "cover": {"title": "Tapparella / Tenda", "step": {"user": {"title": "Nuova tapparella", "data": {"name": "Nome", "where": "Indirizzo (A/PL)", "advanced": "Posizionamento avanzato", "manufacturer": "Produttore", "model": "Modello"}}}},
-    "climate": {"title": "Zona termoregolazione", "step": {"user": {"title": "Nuova zona", "data": {"name": "Nome", "where": "Zona (es. 1)", "heat": "Riscaldamento", "cool": "Raffrescamento", "standalone": "Standalone", "manufacturer": "Produttore", "model": "Modello"}}}},
-    "sensor": {"title": "Sensore", "step": {"user": {"title": "Nuovo sensore", "data": {"name": "Nome", "where": "Indirizzo sensore", "device_class": "Classe", "manufacturer": "Produttore", "model": "Modello"}}}},
-    "binary_sensor": {"title": "Sensore binario", "step": {"user": {"title": "Nuovo sensore binario", "data": {"name": "Nome", "where": "Indirizzo", "who": "Protocollo (25=contatto, 1=motion, 9=aux)", "device_class": "Classe", "inverted": "Inverti stato", "manufacturer": "Produttore", "model": "Modello"}}}}
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "add": "Aggiungi dispositivo",
+          "edit": "Modifica dispositivo",
+          "remove": "Rimuovi dispositivo"
+        }
+      },
+      "add": {
+        "title": "Aggiungi dispositivo",
+        "description": "Scegli il tipo di dispositivo da aggiungere.",
+        "data": { "type": "Tipo dispositivo" }
+      },
+      "add_fields": {
+        "title": "Dettagli dispositivo",
+        "description": "Compila i parametri del dispositivo.",
+        "data": {
+          "name": "Nome",
+          "where": "Indirizzo (A/PL o zona)",
+          "dimmable": "Dimmerabile",
+          "device_class": "Tipo",
+          "advanced": "Posizionamento avanzato",
+          "heat": "Riscaldamento",
+          "cool": "Raffrescamento",
+          "standalone": "Standalone",
+          "who": "Protocollo (25=contatto, 1=motion, 9=aux)",
+          "inverted": "Inverti stato",
+          "manufacturer": "Produttore",
+          "model": "Modello"
+        }
+      },
+      "edit": {
+        "title": "Modifica dispositivo",
+        "description": "Seleziona il dispositivo da modificare.",
+        "data": { "device": "Dispositivo" }
+      },
+      "edit_fields": {
+        "title": "Modifica dispositivo",
+        "description": "Modifica i parametri del dispositivo.",
+        "data": {
+          "name": "Nome",
+          "where": "Indirizzo (A/PL o zona)",
+          "dimmable": "Dimmerabile",
+          "device_class": "Tipo",
+          "advanced": "Posizionamento avanzato",
+          "heat": "Riscaldamento",
+          "cool": "Raffrescamento",
+          "standalone": "Standalone",
+          "who": "Protocollo (25=contatto, 1=motion, 9=aux)",
+          "inverted": "Inverti stato",
+          "manufacturer": "Produttore",
+          "model": "Modello"
+        }
+      },
+      "remove": {
+        "title": "Rimuovi dispositivo",
+        "description": "Seleziona il dispositivo da rimuovere. Verranno eliminati anche l'entità, lo storico e le automazioni collegate.",
+        "data": { "device": "Dispositivo" }
+      }
+    }
+  },
+  "selector": {
+    "device_type": {
+      "options": {
+        "light": "Luce",
+        "switch": "Interruttore / Presa",
+        "cover": "Tapparella / Tenda",
+        "climate": "Termostato / Zona",
+        "sensor": "Sensore",
+        "binary_sensor": "Sensore binario"
+      }
+    },
+    "switch_class": { "options": { "outlet": "Presa", "switch": "Interruttore" } },
+    "sensor_class": { "options": { "power": "Potenza", "energy": "Energia", "temperature": "Temperatura", "illuminance": "Illuminamento" } },
+    "binary_class": { "options": { "opening": "Apertura", "door": "Porta", "window": "Finestra", "motion": "Movimento", "smoke": "Fumo", "gas": "Gas", "moisture": "Umidità", "problem": "Problema", "safety": "Sicurezza" } }
   }
 }
