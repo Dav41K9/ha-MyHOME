@@ -23,6 +23,7 @@ from .const import (
     CONF_NAME,
     CONF_WHERE,
     CONF_WHO,
+    OPTIONS_DEVICES,
     SUBENTRY_BINARY_SENSOR,
 )
 from .entity import MyHOMEEntity
@@ -37,22 +38,22 @@ async def async_setup_entry(
 ) -> None:
     coord = entry.runtime_data
     out = []
-    for sub in entry.subentries.values():
-        if sub.subentry_type != SUBENTRY_BINARY_SENSOR:
+    for dev in entry.options.get(OPTIONS_DEVICES, []):
+        if dev.get("type") != SUBENTRY_BINARY_SENSOR:
             continue
-        who = int(sub.data.get(CONF_WHO, 25))
+        who = int(dev.get(CONF_WHO, 25))
         if who == 1:
-            out.append(MyHOMEMotion(coord, sub.subentry_id, sub.data))
+            out.append(MyHOMEMotion(coord, dev["id"], dev))
         elif who == 9:
-            out.append(MyHOMEAux(coord, sub.subentry_id, sub.data))
+            out.append(MyHOMEAux(coord, dev["id"], dev))
         else:
-            out.append(MyHOMEDryContact(coord, sub.subentry_id, sub.data))
+            out.append(MyHOMEDryContact(coord, dev["id"], dev))
     async_add_entities(out)
 
 
 class _BaseBinary(MyHOMEEntity, BinarySensorEntity):
-    def __init__(self, coordinator, subentry_id, data, who):
-        super().__init__(coordinator, subentry_id, who, data[CONF_WHERE], data[CONF_NAME],
+    def __init__(self, coordinator, device_id, data, who):
+        super().__init__(coordinator, device_id, who, data[CONF_WHERE], data[CONF_NAME],
                          data.get(CONF_MANUFACTURER, ""), data.get(CONF_MODEL, ""))
         self._inverted = bool(data.get(CONF_INVERTED, False))
         self._attr_device_class = _dc(data.get(CONF_DEVICE_CLASS, ""))
