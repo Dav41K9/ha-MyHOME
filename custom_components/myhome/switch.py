@@ -7,7 +7,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_DEVICE_CLASS, CONF_MANUFACTURER, CONF_MODEL, CONF_NAME, CONF_WHERE, SUBENTRY_SWITCH
+from .const import (
+    CONF_DEVICE_CLASS,
+    CONF_MANUFACTURER,
+    CONF_MODEL,
+    CONF_NAME,
+    CONF_WHERE,
+    OPTIONS_DEVICES,
+    SUBENTRY_SWITCH,
+)
 from .entity import MyHOMEEntity
 
 
@@ -16,17 +24,17 @@ async def async_setup_entry(
 ) -> None:
     coord = entry.runtime_data
     async_add_entities(
-        MyHOMESwitch(coord, sub.subentry_id, sub.data)
-        for sub in entry.subentries.values()
-        if sub.subentry_type == SUBENTRY_SWITCH
+        MyHOMESwitch(coord, dev["id"], dev)
+        for dev in entry.options.get(OPTIONS_DEVICES, [])
+        if dev.get("type") == SUBENTRY_SWITCH
     )
 
 
 class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
-    def __init__(self, coordinator, subentry_id: str, data: dict) -> None:
+    def __init__(self, coordinator, device_id: str, data: dict) -> None:
         super().__init__(
             coordinator,
-            subentry_id,
+            device_id,
             who=1,
             where=data[CONF_WHERE],
             name=data[CONF_NAME],
