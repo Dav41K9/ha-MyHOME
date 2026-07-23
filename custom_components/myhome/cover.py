@@ -12,7 +12,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_ADVANCED, CONF_MANUFACTURER, CONF_MODEL, CONF_NAME, CONF_WHERE, SUBENTRY_COVER
+from .const import (
+    CONF_ADVANCED,
+    CONF_MANUFACTURER,
+    CONF_MODEL,
+    CONF_NAME,
+    CONF_WHERE,
+    OPTIONS_DEVICES,
+    SUBENTRY_COVER,
+)
 from .entity import MyHOMEEntity
 
 
@@ -21,17 +29,17 @@ async def async_setup_entry(
 ) -> None:
     coord = entry.runtime_data
     async_add_entities(
-        MyHOMECover(coord, sub.subentry_id, sub.data)
-        for sub in entry.subentries.values()
-        if sub.subentry_type == SUBENTRY_COVER
+        MyHOMECover(coord, dev["id"], dev)
+        for dev in entry.options.get(OPTIONS_DEVICES, [])
+        if dev.get("type") == SUBENTRY_COVER
     )
 
 
 class MyHOMECover(MyHOMEEntity, CoverEntity):
-    def __init__(self, coordinator, subentry_id: str, data: dict) -> None:
+    def __init__(self, coordinator, device_id: str, data: dict) -> None:
         super().__init__(
             coordinator,
-            subentry_id,
+            device_id,
             who=2,
             where=data[CONF_WHERE],
             name=data[CONF_NAME],
