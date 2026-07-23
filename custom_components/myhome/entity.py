@@ -9,7 +9,7 @@ from .coordinator import MyHOMEGatewayCoordinator
 
 
 class MyHOMEEntity(Entity):
-    """Base class; binds to the per-subentry device created in __init__."""
+    """Base class; binds to the per-device entry created in __init__."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
@@ -17,7 +17,7 @@ class MyHOMEEntity(Entity):
     def __init__(
         self,
         coordinator: MyHOMEGatewayCoordinator,
-        subentry_id: str,
+        device_id: str,
         who: int,
         where: str,
         name: str,
@@ -25,10 +25,10 @@ class MyHOMEEntity(Entity):
         model: str,
     ) -> None:
         self._coordinator = coordinator
-        self._subentry_id = subentry_id
+        self._device_id = device_id
         self._who = who
         self._where = where
-        self._device_key = f"{coordinator.mac}-{subentry_id}"
+        self._device_key = f"{coordinator.mac}-{device_id}"
         self._attr_unique_id = self._device_key
         # entity name None -> displayed as the device name (single-entity device)
         self._attr_name = None
@@ -37,7 +37,7 @@ class MyHOMEEntity(Entity):
             name=name,
             manufacturer=manufacturer or MANUFACTURER_DEFAULT,
             model=model or None,
-            via_device=(DOMAIN, coordinator.mac),  # works on 2026.7.2; switch to via_device_id on >=2026.8
+            via_device=(DOMAIN, coordinator.mac),  # works on 2026.7; switch to via_device_id on >=2026.8
         )
 
     @property
