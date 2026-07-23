@@ -97,62 +97,43 @@ def _schema_for_type(dtype: str, defaults: dict | None = None) -> vol.Schema:
     def d(key: str, fallback: Any) -> Any:
         return defaults.get(key, fallback) if defaults else fallback
 
-    man = vol.Optional(CONF_MANUFACTURER, default=d(CONF_MANUFACTURER, MANUFACTURER_DEFAULT)): TextSelector()
-    model = vol.Optional(CONF_MODEL, default=d(CONF_MODEL, _DEFAULT_MODEL.get(dtype, ""))): TextSelector()
-    name = vol.Required(CONF_NAME, default=d(CONF_NAME, "")): TextSelector()
-    where = vol.Required(CONF_WHERE, default=d(CONF_WHERE, "")): TextSelector()
+    schema: dict = {
+        vol.Required(CONF_NAME, default=d(CONF_NAME, "")): TextSelector(),
+        vol.Required(CONF_WHERE, default=d(CONF_WHERE, "")): TextSelector(),
+    }
 
     if dtype == SUBENTRY_LIGHT:
-        return vol.Schema({
-            name, where,
-            vol.Optional(CONF_DIMMABLE, default=d(CONF_DIMMABLE, False)): BooleanSelector(),
-            man, model,
-        })
-    if dtype == SUBENTRY_SWITCH:
-        return vol.Schema({
-            name, where,
-            vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "outlet")): SelectSelector(
-                SelectSelectorConfig(options=["outlet", "switch"], translation_key="switch_class")
-            ),
-            man, model,
-        })
-    if dtype == SUBENTRY_COVER:
-        return vol.Schema({
-            name, where,
-            vol.Optional(CONF_ADVANCED, default=d(CONF_ADVANCED, True)): BooleanSelector(),
-            man, model,
-        })
-    if dtype == SUBENTRY_CLIMATE:
-        return vol.Schema({
-            name, where,
-            vol.Optional(CONF_HEAT, default=d(CONF_HEAT, True)): BooleanSelector(),
-            vol.Optional(CONF_COOL, default=d(CONF_COOL, False)): BooleanSelector(),
-            vol.Optional(CONF_STANDALONE, default=d(CONF_STANDALONE, True)): BooleanSelector(),
-            man, model,
-        })
-    if dtype == SUBENTRY_SENSOR:
-        return vol.Schema({
-            name, where,
-            vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "power")): SelectSelector(
-                SelectSelectorConfig(options=["power", "energy", "temperature", "illuminance"], translation_key="sensor_class")
-            ),
-            man, model,
-        })
-    # binary_sensor
-    return vol.Schema({
-        name, where,
-        vol.Optional(CONF_WHO, default=d(CONF_WHO, 25)): NumberSelector(
+        schema[vol.Optional(CONF_DIMMABLE, default=d(CONF_DIMMABLE, False))] = BooleanSelector()
+    elif dtype == SUBENTRY_SWITCH:
+        schema[vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "outlet"))] = SelectSelector(
+            SelectSelectorConfig(options=["outlet", "switch"], translation_key="switch_class")
+        )
+    elif dtype == SUBENTRY_COVER:
+        schema[vol.Optional(CONF_ADVANCED, default=d(CONF_ADVANCED, True))] = BooleanSelector()
+    elif dtype == SUBENTRY_CLIMATE:
+        schema[vol.Optional(CONF_HEAT, default=d(CONF_HEAT, True))] = BooleanSelector()
+        schema[vol.Optional(CONF_COOL, default=d(CONF_COOL, False))] = BooleanSelector()
+        schema[vol.Optional(CONF_STANDALONE, default=d(CONF_STANDALONE, True))] = BooleanSelector()
+    elif dtype == SUBENTRY_SENSOR:
+        schema[vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "power"))] = SelectSelector(
+            SelectSelectorConfig(options=["power", "energy", "temperature", "illuminance"], translation_key="sensor_class")
+        )
+    elif dtype == SUBENTRY_BINARY_SENSOR:
+        schema[vol.Optional(CONF_WHO, default=d(CONF_WHO, 25))] = NumberSelector(
             NumberSelectorConfig(min=1, max=255, mode="box")
-        ),
-        vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "opening")): SelectSelector(
+        )
+        schema[vol.Optional(CONF_DEVICE_CLASS, default=d(CONF_DEVICE_CLASS, "opening"))] = SelectSelector(
             SelectSelectorConfig(
                 options=["opening", "door", "window", "motion", "smoke", "gas", "moisture", "problem", "safety"],
                 translation_key="binary_class",
             )
-        ),
-        vol.Optional(CONF_INVERTED, default=d(CONF_INVERTED, False)): BooleanSelector(),
-        man, model,
-    })
+        )
+        schema[vol.Optional(CONF_INVERTED, default=d(CONF_INVERTED, False))] = BooleanSelector()
+
+    schema[vol.Optional(CONF_MANUFACTURER, default=d(CONF_MANUFACTURER, MANUFACTURER_DEFAULT))] = TextSelector()
+    schema[vol.Optional(CONF_MODEL, default=d(CONF_MODEL, _DEFAULT_MODEL.get(dtype, "")))] = TextSelector()
+
+    return vol.Schema(schema)
 
 
 class MyHOMEConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -246,7 +227,6 @@ class MyHOMEOptionsFlow(OptionsFlow):
         self._dtype: str | None = None
         self._edit_id: str | None = None
 
-    # ---- helpers ----
     def _devices(self) -> list[dict]:
         return list(self.config_entry.options.get(OPTIONS_DEVICES, []))
 
@@ -263,14 +243,12 @@ class MyHOMEOptionsFlow(OptionsFlow):
             {vol.Required("device"): SelectSelector(SelectSelectorConfig(options=options))}
         )
 
-    # ---- menu ----
     async def async_step_init(self, user_input: dict | None = None) -> ConfigFlowResult:
         menu = ["add"]
         if self._devices():
             menu += ["edit", "remove"]
         return self.async_show_menu(step_id="init", menu_options=menu)
 
-    # ---- add ----
     async def async_step_add(self, user_input: dict | None = None) -> ConfigFlowResult:
         if user_input is not None:
             self._dtype = user_input["type"]
@@ -309,7 +287,6 @@ class MyHOMEOptionsFlow(OptionsFlow):
             data_schema=_schema_for_type(self._dtype),
         )
 
-    # ---- edit ----
     async def async_step_edit(self, user_input: dict | None = None) -> ConfigFlowResult:
         devices = self._devices()
         if not devices:
@@ -334,7 +311,6 @@ class MyHOMEOptionsFlow(OptionsFlow):
             data_schema=_schema_for_type(current.get("type", SUBENTRY_LIGHT), defaults=current),
         )
 
-    # ---- remove ----
     async def async_step_remove(self, user_input: dict | None = None) -> ConfigFlowResult:
         devices = self._devices()
         if not devices:
