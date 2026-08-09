@@ -30,6 +30,7 @@ from .const import (
     CONF_COOL,
     CONF_DEVICE_CLASS,
     CONF_DIMMABLE,
+    CONF_FRAME,
     CONF_HEAT,
     CONF_HOST,
     CONF_INVERTED,
@@ -50,6 +51,7 @@ from .const import (
     MANUFACTURER_DEFAULT,
     OPTIONS_DEVICES,
     SUBENTRY_BINARY_SENSOR,
+    SUBENTRY_BUTTON,
     SUBENTRY_CLIMATE,
     SUBENTRY_COVER,
     SUBENTRY_LIGHT,
@@ -66,6 +68,7 @@ _DEFAULT_MODEL = {
     SUBENTRY_CLIMATE: "F430R8",
     SUBENTRY_SENSOR: "F520",
     SUBENTRY_BINARY_SENSOR: "BMSW1005",
+    SUBENTRY_BUTTON: "MyHOME Scenario",
 }
 
 
@@ -129,6 +132,11 @@ def _schema_for_type(dtype: str, defaults: dict | None = None) -> vol.Schema:
             )
         )
         schema[vol.Optional(CONF_INVERTED, default=d(CONF_INVERTED, False))] = BooleanSelector()
+    elif dtype == SUBENTRY_BUTTON:
+        schema[vol.Optional(CONF_WHO, default=d(CONF_WHO, 0))] = NumberSelector(
+            NumberSelectorConfig(min=0, max=255, mode="box")
+        )
+        schema[vol.Optional(CONF_FRAME, default=d(CONF_FRAME, ""))] = TextSelector()
 
     schema[vol.Optional(CONF_MANUFACTURER, default=d(CONF_MANUFACTURER, MANUFACTURER_DEFAULT))] = TextSelector()
     schema[vol.Optional(CONF_MODEL, default=d(CONF_MODEL, _DEFAULT_MODEL.get(dtype, "")))] = TextSelector()
@@ -266,6 +274,7 @@ class MyHOMEOptionsFlow(OptionsFlow):
                                 SUBENTRY_CLIMATE,
                                 SUBENTRY_SENSOR,
                                 SUBENTRY_BINARY_SENSOR,
+                                SUBENTRY_BUTTON,
                             ],
                             translation_key="device_type",
                         )
