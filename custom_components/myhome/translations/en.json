@@ -51,7 +51,8 @@
           "who": "Protocol (25=contact, 1=motion, 9=aux)",
           "inverted": "Invert state",
           "manufacturer": "Manufacturer",
-          "model": "Model"
+          "model": "Model",
+          "frame": "Custom frame (optional)"
         }
       },
       "edit": {
@@ -74,7 +75,8 @@
           "who": "Protocol (25=contact, 1=motion, 9=aux)",
           "inverted": "Invert state",
           "manufacturer": "Manufacturer",
-          "model": "Model"
+          "model": "Model",
+          "frame": "Custom frame (optional)"
         }
       },
       "remove": {
@@ -92,7 +94,8 @@
         "cover": "Shutter / Blind",
         "climate": "Thermostat / Zone",
         "sensor": "Sensor",
-        "binary_sensor": "Binary sensor"
+        "binary_sensor": "Binary sensor",
+        "button": "Button / Scenario"
       }
     },
     "switch_class": { "options": { "outlet": "Plug", "switch": "Switch" } },
