@@ -51,7 +51,8 @@
           "who": "Protocollo (25=contatto, 1=motion, 9=aux)",
           "inverted": "Inverti stato",
           "manufacturer": "Produttore",
-          "model": "Modello"
+          "model": "Modello",
+          "frame": "Frame personalizzato (opzionale)"
         }
       },
       "edit": {
@@ -74,7 +75,8 @@
           "who": "Protocollo (25=contatto, 1=motion, 9=aux)",
           "inverted": "Inverti stato",
           "manufacturer": "Produttore",
-          "model": "Modello"
+          "model": "Modello",
+          "frame": "Frame personalizzato (opzionale)"
         }
       },
       "remove": {
@@ -92,7 +94,8 @@
         "cover": "Tapparella / Tenda",
         "climate": "Termostato / Zona",
         "sensor": "Sensore",
-        "binary_sensor": "Sensore binario"
+        "binary_sensor": "Sensore binario",
+        "button": "Pulsante / Scenario"
       }
     },
     "switch_class": { "options": { "outlet": "Presa", "switch": "Interruttore" } },
