@@ -26,6 +26,7 @@ CONF_MANUFACTURER = "manufacturer"
 CONF_MODEL = "model"
 CONF_INVERTED = "inverted"
 CONF_WHO = "who"
+CONF_FRAME = "frame"
 
 # --- options ---
 OPTIONS_DEVICES = "devices"  # list[dict] of configured devices
@@ -37,6 +38,7 @@ SUBENTRY_COVER = "cover"
 SUBENTRY_CLIMATE = "climate"
 SUBENTRY_SENSOR = "sensor"
 SUBENTRY_BINARY_SENSOR = "binary_sensor"
+SUBENTRY_BUTTON = "button"
 
 DEVICE_TYPES = [
     SUBENTRY_LIGHT,
@@ -45,6 +47,7 @@ DEVICE_TYPES = [
     SUBENTRY_CLIMATE,
     SUBENTRY_SENSOR,
     SUBENTRY_BINARY_SENSOR,
+    SUBENTRY_BUTTON,
 ]
 
 PLATFORMS = [
@@ -54,6 +57,7 @@ PLATFORMS = [
     Platform.CLIMATE,
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
 ]
 
 # --- defaults ---
